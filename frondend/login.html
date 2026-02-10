@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Login | Face Attendance</title>
+
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+
+<body class="login-page">
+
+  <!-- Background -->
+  <div class="bg-pattern"></div>
+
+  <!-- Watermark -->
+  <div class="logo-watermark">
+    <img src="assets/university-logo.png" alt="University logo watermark" />
+  </div>
+
+  <!-- Login Wrapper -->
+  <div class="login-wrapper">
+    <div class="login-card-square">
+      <h2 class="login-title">Admin Login</h2>
+      <p class="login-sub">
+        Sign in to access the attendance dashboard
+      </p>
+
+      <input
+        type="text"
+        id="username"
+        placeholder="Admin Username"
+        aria-label="Username"
+      />
+
+      <input
+        type="password"
+        id="password"
+        placeholder="Password"
+        aria-label="Password"
+      />
+
+      <button class="btn btn-primary full" onclick="login()">
+        Login
+      </button>
+
+      <p id="login-msg"></p>
+
+      <div class="divider">or</div>
+
+      <button class="btn btn-outline full" onclick="showCreate()">
+        Create Account
+      </button>
+
+      <a href="index.html" class="back-home">
+        ← Back to Home
+      </a>
+    </div>
+  </div>
+
+  <!-- JS -->
+  <script>
+    async function login() {
+      const username = document.getElementById("username").value;
+      const password = document.getElementById("password").value;
+      const msg = document.getElementById("login-msg");
+
+      try {
+        const response = await fetch("http://127.0.0.1:5000/api/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, password })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          localStorage.setItem("loggedIn", "true");
+          window.location.href = "dashboard.html";
+        } else {
+          msg.style.color = "red";
+          msg.textContent = "Invalid credentials";
+        }
+      } catch (e) {
+        msg.style.color = "red";
+        msg.textContent = "Backend not reachable";
+      }
+    }
+
+    function showCreate() {
+      alert("Create account will be enabled after backend integration");
+    }
+  </script>
+</body>
+</html>

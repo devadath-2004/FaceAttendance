@@ -574,3 +574,143 @@ body {
     justify-content: flex-end;
   }
 }
+/* Full opacity background ONLY for login page */
+.login-page .bg-pattern {
+  opacity: 1;
+}
+
+/* Center login card */
+.login-wrapper {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  z-index: 5;
+}
+
+/* Square login card */
+.login-card-square {
+  width: 380px;
+  background: #ffffff;
+  padding: 42px 36px;
+  border-radius: 22px;
+  text-align: center;
+
+  box-shadow:
+    0 30px 60px rgba(0, 0, 0, 0.25),
+    0 0 0 1px rgba(99, 102, 241, 0.15);
+
+  animation: loginFadeUp 0.6s ease;
+}
+
+/* Login heading */
+.login-title {
+  font-size: 26px;
+  font-weight: 800;
+  margin-bottom: 6px;
+}
+
+.login-sub {
+  font-size: 14px;
+  color: #6b7280;
+  margin-bottom: 24px;
+}
+
+/* Login inputs */
+.login-card-square input {
+  width: 100%;
+  padding: 14px 16px;
+  margin-bottom: 14px;
+  border-radius: 12px;
+  border: 1px solid #d1d5db;
+  font-size: 15px;
+}
+
+.login-card-square input:focus {
+  outline: none;
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.25);
+}
+
+/* Divider */
+.divider {
+  margin: 18px 0;
+  font-size: 13px;
+  color: #9ca3af;
+}
+
+/* Back link */
+.back-home {
+  display: inline-block;
+  margin-top: 18px;
+  font-size: 14px;
+  color: #4f46e5;
+  text-decoration: none;
+}
+
+.back-home:hover {
+  text-decoration: underline;
+}
+
+/* Login animation */
+@keyframes loginFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(28px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+/* ===============================
+   DASHBOARD TABLE
+================================ */
+.dashboard-table-wrapper {
+  overflow-x: auto;
+  margin-top: 30px;
+}
+
+.dashboard-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+}
+
+.dashboard-table th,
+.dashboard-table td {
+  padding: 16px 18px;
+  text-align: left;
+  font-size: 15px;
+}
+
+.dashboard-table thead {
+  background: #4f46e5;
+  color: white;
+}
+
+.dashboard-table tbody tr {
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.dashboard-table tbody tr:hover {
+  background: #f9fafb;
+}
+
+.status {
+  font-weight: 700;
+}
+
+.status.present {
+  color: #16a34a;
+}
+
+.status.late {
+  color: #f97316;
+}
+
+

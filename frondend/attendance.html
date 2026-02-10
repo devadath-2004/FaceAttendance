@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Take Attendance | Face Attendance</title>
+
+  <link rel="stylesheet" href="css/style.css" />
+
+  <!-- Protect route -->
+  <script>
+    if (localStorage.getItem("loggedIn") !== "true") {
+      window.location.href = "login.html";
+    }
+  </script>
+</head>
+
+<body>
+
+  <!-- Background -->
+  <div class="bg-pattern"></div>
+
+  <!-- Watermark -->
+  <div class="logo-watermark">
+    <img src="assets/university-logo.png" alt="University logo watermark" />
+  </div>
+
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="nav-container">
+      <div class="nav-left">
+        <div class="logo-box">⌁</div>
+        <span class="brand">Face Attendance</span>
+      </div>
+      <div class="nav-right">
+        <a class="nav-link" href="index.html">Home</a>
+        <a class="nav-link" href="register.html">Register</a>
+        <a class="nav-link active" href="attendance.html">Attendance</a>
+        <a class="nav-link" href="dashboard.html">Dashboard</a>
+        <a class="btn btn-outline" href="#" onclick="logout()">Logout</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Content -->
+  <section class="container section">
+    <h1 class="section-title center">Take Attendance</h1>
+    <p class="section-subtitle center">
+      Face recognition based attendance (demo mode)
+    </p>
+
+    <div class="hero-grid">
+      <!-- Camera (Demo) -->
+      <div class="webcam-card">
+        <div class="webcam-top-left">
+          <span class="dot dot-red"></span>
+          Camera: OFF
+        </div>
+
+        <div class="webcam-body">
+          <div class="webcam-frame"></div>
+          <div class="webcam-icon">🎥</div>
+          <div class="webcam-info">
+            <h3>Camera Preview</h3>
+            <p style="color:#6b7280;font-size:14px">
+              Demo camera placeholder
+            </p>
+            <button class="btn btn-primary" onclick="startDemo()">
+              Start Attendance (Demo)
+            </button>
+          </div>
+        </div>
+
+        <div class="webcam-footer">
+          <span class="status-label">Face Detection:</span>
+          <span class="status-off">
+            <span class="dot dot-red"></span> OFF
+          </span>
+        </div>
+      </div>
+
+      <!-- Result / Manual Marking -->
+      <div class="login-card-square">
+        <h3 class="login-title">Recognition Result</h3>
+        <p class="login-sub">
+          Demo mode – manual roll entry
+        </p>
+
+        <!-- 🔽 Added inputs (UI style unchanged) -->
+        <input
+          type="text"
+          id="roll"
+          placeholder="Roll Number"
+        />
+
+        <select id="status" style="margin-top:10px">
+          <option value="Present">Present</option>
+          <option value="Late">Late</option>
+          <option value="Absent">Absent</option>
+        </select>
+        
+        <button
+          class="btn btn-primary full"
+          style="margin-top:16px"
+          onclick="markAttendance()"
+        >
+          Mark Attendance
+        </button>
+
+        <p id="msg" style="margin-top:12px"></p>
+
+        <!-- Display area -->
+        <div style="text-align:left;color:#374151;margin-top:14px">
+          <p><strong>Status:</strong> Saved to database</p>
+          <p><strong>Mode:</strong> Demo</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container footer-content">
+      <div>
+        <strong>Face Attendance System © 2026</strong>
+        <p>Attendance Module</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- JS -->
+  <script>
+    function logout() {
+      localStorage.removeItem("loggedIn");
+      window.location.href = "login.html";
+    }
+
+    function startDemo() {
+      alert("Demo camera running. Face recognition will be added next.");
+    }
+
+    async function markAttendance() {
+      const roll = document.getElementById("roll").value;
+      const status = document.getElementById("status").value;
+      const msg = document.getElementById("msg");
+
+      if (!roll) {
+        msg.style.color = "red";
+        msg.textContent = "Please enter roll number";
+        return;
+      }
+
+      try {
+        const res = await fetch(
+          "http://127.0.0.1:5000/api/mark-attendance",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              roll: roll,
+              status: status
+            })
+          }
+        );
+
+        const data = await res.json();
+
+        if (data.success) {
+          msg.style.color = "green";
+          msg.textContent = "Attendance marked successfully";
+          document.getElementById("roll").value = "";
+        } else {
+          msg.style.color = "red";
+          msg.textContent = data.error || "Failed to mark attendance";
+        }
+      } catch (e) {
+        msg.style.color = "red";
+        msg.textContent = "Backend not reachable";
+      }
+    }
+  </script>
+</body>
+</html>

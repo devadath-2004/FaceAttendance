@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Dashboard | Face Attendance</title>
+
+  <link rel="stylesheet" href="css/style.css" />
+
+  <script>
+    if (localStorage.getItem("loggedIn") !== "true") {
+      window.location.href = "login.html";
+    }
+  </script>
+</head>
+
+<body>
+  <div class="bg-pattern"></div>
+
+  <div class="logo-watermark">
+    <img src="assets/university-logo.png" alt="University logo watermark" />
+  </div>
+
+  <nav class="navbar">
+    <div class="nav-container">
+      <div class="nav-left">
+        <div class="logo-box">⌁</div>
+        <span class="brand">Face Attendance</span>
+      </div>
+      <div class="nav-right">
+        <a class="nav-link" href="index.html">Home</a>
+        <a class="nav-link" href="register.html">Register</a>
+        <a class="nav-link" href="attendance.html">Attendance</a>
+        <a class="nav-link active" href="dashboard.html">Dashboard</a>
+        <a class="btn btn-outline" href="#" onclick="logout()">Logout</a>
+      </div>
+    </div>
+  </nav>
+
+  <section class="container section">
+    <h1 class="section-title">Admin Dashboard</h1>
+
+    <div style="display:flex;gap:14px;margin-bottom:20px">
+      <input type="date" id="datePicker" />
+      <button class="btn btn-outline" onclick="loadData()">Load</button>
+      <button class="btn btn-primary" onclick="exportCSV()">Export CSV</button>
+      <button class="btn btn-primary" onclick="exportPDF()">Export PDF</button>
+    </div>
+
+    <div class="quick-grid">
+      <div class="quick-tile">👥 Total <strong id="totalStudents">0</strong></div>
+      <div class="quick-tile">✅ Present <strong id="presentCount">0</strong></div>
+      <div class="quick-tile">⏱ Late <strong id="lateCount">0</strong></div>
+      <div class="quick-tile">❌ Absent <strong id="absentCount">0</strong></div>
+      <div class="quick-tile">📊 Attendance % <strong id="percent">0%</strong></div>
+    </div>
+  </section>
+
+  <section class="container section">
+    <table class="dashboard-table">
+      <thead>
+        <tr>
+          <th>#</th><th>Name</th><th>Roll</th><th>Time</th><th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="attendanceBody"></tbody>
+    </table>
+  </section>
+
+  <script>
+    function logout() {
+      localStorage.removeItem("loggedIn");
+      window.location.href = "login.html";
+    }
+
+    function loadData() {
+      const date = document.getElementById("datePicker").value;
+      fetch(`http://127.0.0.1:5000/api/attendance?date=${date}`)
+        .then(r => r.json())
+        .then(d => {
+          document.getElementById("totalStudents").textContent = d.total_students;
+          document.getElementById("presentCount").textContent = d.present;
+          document.getElementById("lateCount").textContent = d.late;
+          document.getElementById("absentCount").textContent = d.absent;
+          document.getElementById("percent").textContent = d.attendance_percent + "%";
+
+          const tbody = document.getElementById("attendanceBody");
+          tbody.innerHTML = "";
+          d.records.forEach((r, i) => {
+            tbody.innerHTML += `
+              <tr>
+                <td>${i + 1}</td>
+                <td>${r.name}</td>
+                <td>${r.roll}</td>
+                <td>${r.time}</td>
+                <td>${r.status}</td>
+              </tr>`;
+          });
+        });
+    }
+
+    function exportCSV() {
+      const date = document.getElementById("datePicker").value;
+      window.location.href =
+        `http://127.0.0.1:5000/api/export-csv?date=${date}`;
+    }
+
+    function exportPDF() {
+      const date = document.getElementById("datePicker").value;
+      window.location.href =
+        `http://127.0.0.1:5000/api/export-pdf?date=${date}`;
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      document.getElementById("datePicker").value =
+        new Date().toISOString().split("T")[0];
+      loadData();
+    });
+  </script>
+</body>
+</html>

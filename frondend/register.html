@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Register Student | Face Attendance</title>
+
+  <link rel="stylesheet" href="css/style.css" />
+
+  <!-- Protect route -->
+  <script>
+    if (localStorage.getItem("loggedIn") !== "true") {
+      window.location.href = "login.html";
+    }
+  </script>
+</head>
+
+<body>
+  <!-- Background -->
+  <div class="bg-pattern"></div>
+
+  <!-- Watermark -->
+  <div class="logo-watermark">
+    <img src="assets/university-logo.png" alt="University logo watermark" />
+  </div>
+
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="nav-container">
+      <div class="nav-left">
+        <div class="logo-box">⌁</div>
+        <span class="brand">Face Attendance</span>
+      </div>
+      <div class="nav-right">
+        <a class="nav-link" href="index.html">Home</a>
+        <a class="nav-link active" href="register.html">Register</a>
+        <a class="nav-link" href="attendance.html">Attendance</a>
+        <a class="nav-link" href="dashboard.html">Dashboard</a>
+        <a class="btn btn-outline" href="#" onclick="logout()">Logout</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Content -->
+  <section class="container section">
+    <h1 class="section-title center">Register Student</h1>
+    <p class="section-subtitle center">
+      Capture student details and face data (demo preview)
+    </p>
+
+    <div class="hero-grid">
+      <!-- Form -->
+      <div>
+        <div class="login-card-square">
+          <h3 class="login-title">Student Details</h3>
+
+          <!-- 🔽 IDs added (NO UI change) -->
+          <input type="text" id="studentName" placeholder="Student Name" />
+          <input type="text" id="studentRoll" placeholder="Roll Number" />
+          <input type="text" id="studentDept" placeholder="Department" />
+
+          <button class="btn btn-primary full" onclick="registerStudent()">
+            Save Student
+          </button>
+
+          <!-- Message -->
+          <p id="msg" style="margin-top:12px;"></p>
+        </div>
+      </div>
+
+      <!-- Demo Camera -->
+      <div class="webcam-card">
+        <div class="webcam-body">
+          <div class="webcam-frame"></div>
+          <div class="webcam-icon">📷</div>
+          <div class="webcam-info">
+            <h3>Camera Preview</h3>
+            <p style="color:#6b7280;font-size:14px">
+              Demo camera placeholder
+            </p>
+            <button class="btn btn-outline">
+              Capture Face (Demo)
+            </button>
+          </div>
+        </div>
+        <div class="webcam-footer">
+          <span class="status-label">Camera Status:</span>
+          <span class="status-off">
+            <span class="dot dot-red"></span> OFF
+          </span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container footer-content">
+      <div>
+        <strong>Face Attendance System © 2026</strong>
+        <p>Student Registration</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- JS -->
+  <script>
+    function logout() {
+      localStorage.removeItem("loggedIn");
+      window.location.href = "login.html";
+    }
+
+    async function registerStudent() {
+      const name = document.getElementById("studentName").value;
+      const roll = document.getElementById("studentRoll").value;
+      const dept = document.getElementById("studentDept").value;
+      const msg = document.getElementById("msg");
+
+      if (!name || !roll || !dept) {
+        msg.style.color = "red";
+        msg.textContent = "Please fill all fields";
+        return;
+      }
+
+      try {
+        const res = await fetch("http://127.0.0.1:5000/api/register-student", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: name,
+            roll: roll,
+            department: dept
+          })
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+          msg.style.color = "green";
+          msg.textContent = "Student registered successfully";
+
+          // clear form
+          studentName.value = "";
+          studentRoll.value = "";
+          studentDept.value = "";
+        } else {
+          msg.style.color = "red";
+          msg.textContent = data.error || "Registration failed";
+        }
+      } catch (e) {
+        msg.style.color = "red";
+        msg.textContent = "Backend not reachable";
+      }
+    }
+  </script>
+</body>
+</html>
