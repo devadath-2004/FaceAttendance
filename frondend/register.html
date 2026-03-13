@@ -4,31 +4,66 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Register Student | Face Attendance</title>
-
   <link rel="stylesheet" href="css/style.css" />
-
-  <!-- Protect route -->
   <script>
     if (localStorage.getItem("loggedIn") !== "true") {
       window.location.href = "login.html";
     }
+    if (localStorage.getItem("role") !== "admin") {
+      window.location.href = "dashboard.html";
+    }
   </script>
+  <style>
+    .step-indicator {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+    .step-bubble {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 600;
+      background: #e5e7eb;
+      color: #6b7280;
+      flex-shrink: 0;
+    }
+    .step-bubble.active  { background: #6366f1; color: #fff; }
+    .step-bubble.done    { background: #10b981; color: #fff; }
+    .step-line {
+      flex: 1;
+      height: 2px;
+      background: #e5e7eb;
+    }
+    .step-line.done { background: #10b981; }
+    .step-label {
+      font-size: 12px;
+      color: #6b7280;
+      white-space: nowrap;
+    }
+    .step-label.active { color: #6366f1; font-weight: 600; }
+    .step-label.done   { color: #10b981; }
+  </style>
 </head>
 
 <body>
-  <!-- Background -->
   <div class="bg-pattern"></div>
-
-  <!-- Watermark -->
   <div class="logo-watermark">
     <img src="assets/university-logo.png" alt="University logo watermark" />
   </div>
 
-  <!-- Navbar -->
   <nav class="navbar">
     <div class="nav-container">
       <div class="nav-left">
-        <div class="logo-box">⌁</div>
+        <div class="logo-box" style="background:none;padding:0;width:36px;height:36px;">
+          <img src="assets/faceattendance-2.png" alt="Logo"
+            style="width:36px;height:36px;border-radius:8px;object-fit:contain;" />
+        </div>
         <span class="brand">Face Attendance</span>
       </div>
       <div class="nav-right">
@@ -41,51 +76,102 @@
     </div>
   </nav>
 
-  <!-- Content -->
   <section class="container section">
     <h1 class="section-title center">Register Student</h1>
-    <p class="section-subtitle center">
-      Capture student details and face data (demo preview)
-    </p>
+    <p class="section-subtitle center">Follow the 3 steps below</p>
+
+    <!-- Step indicator -->
+    <div class="step-indicator" style="max-width:500px;margin:0 auto 30px;">
+      <div class="step-bubble active" id="bubble1">1</div>
+      <span class="step-label active" id="label1">Fill Details</span>
+      <div class="step-line" id="line1"></div>
+      <div class="step-bubble" id="bubble2">2</div>
+      <span class="step-label" id="label2">Start Camera</span>
+      <div class="step-line" id="line2"></div>
+      <div class="step-bubble" id="bubble3">3</div>
+      <span class="step-label" id="label3">Capture Face</span>
+    </div>
 
     <div class="hero-grid">
-      <!-- Form -->
+      <!-- Left: Form -->
       <div>
         <div class="login-card-square">
           <h3 class="login-title">Student Details</h3>
 
-          <!-- 🔽 IDs added (NO UI change) -->
-          <input type="text" id="studentName" placeholder="Student Name" />
-          <input type="text" id="studentRoll" placeholder="Roll Number" />
-          <input type="text" id="studentDept" placeholder="Department" />
+          <!-- Step 1: Details -->
+          <div id="step1Section">
+            <input type="text" id="studentName" placeholder="Student Name" />
+            <input type="text" id="studentRoll" placeholder="Roll Number"  style="margin-top:10px" />
+            <input type="text" id="studentClass" placeholder="Class (e.g. CS-A, IT-B)" style="margin-top:10px" />
+            <input type="text" id="studentDept" placeholder="Department"   style="margin-top:10px" />
+            <button class="btn btn-primary full" onclick="registerStudent()" style="margin-top:16px">
+              Step 1 — Save Details
+            </button>
+          </div>
 
-          <button class="btn btn-primary full" onclick="registerStudent()">
-            Save Student
-          </button>
+          <!-- Step 2: Start camera (shown after step 1) -->
+          <div id="step2Section" style="display:none;margin-top:16px">
+            <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:12px;margin-bottom:14px">
+              <p style="color:#166534;font-size:13px;margin:0">
+                ✔ Details saved! Now start the camera and capture the student's face.
+              </p>
+            </div>
+            <button class="btn btn-primary full" onclick="startCamera()" id="startCamBtn">
+              Step 2 — Start Camera
+            </button>
+          </div>
 
-          <!-- Message -->
-          <p id="msg" style="margin-top:12px;"></p>
+          <!-- Step 3: Capture (shown after camera starts) -->
+          <div id="step3Section" style="display:none;margin-top:16px">
+            <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:12px;margin-bottom:14px">
+              <p style="color:#1e40af;font-size:13px;margin:0">
+                📷 Camera is ON. Make sure the face is clearly visible, then capture.
+              </p>
+            </div>
+            <button class="btn btn-primary full" onclick="captureFace()">
+              Step 3 — Capture Face
+            </button>
+          </div>
+
+          <p id="msg" style="margin-top:14px;font-size:14px;"></p>
         </div>
       </div>
 
-      <!-- Demo Camera -->
+      <!-- Right: Webcam -->
       <div class="webcam-card">
-        <div class="webcam-body">
-          <div class="webcam-frame"></div>
-          <div class="webcam-icon">📷</div>
-          <div class="webcam-info">
-            <h3>Camera Preview</h3>
-            <p style="color:#6b7280;font-size:14px">
-              Demo camera placeholder
-            </p>
-            <button class="btn btn-outline">
-              Capture Face (Demo)
-            </button>
-          </div>
+        <div class="webcam-top-left">
+          <span class="dot" id="camDot" style="background:red"></span>
+          <span id="camLabel">Camera: OFF</span>
         </div>
+
+        <div class="webcam-body" style="position:relative;min-height:220px;">
+
+          <!-- Placeholder -->
+          <div id="camPlaceholder" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:220px;">
+            <div class="webcam-icon">📷</div>
+            <div class="webcam-info">
+              <h3>Camera Preview</h3>
+              <p style="color:#6b7280;font-size:14px">
+                Complete Step 1 first
+              </p>
+            </div>
+          </div>
+
+          <!-- Live video -->
+          <video id="video" autoplay playsinline
+            style="display:none;width:100%;border-radius:12px;"></video>
+
+          <!-- Snapshot after capture -->
+          <img id="snapshot"
+            style="display:none;width:100%;border-radius:12px;" />
+
+          <!-- Hidden canvas -->
+          <canvas id="canvas" style="display:none;"></canvas>
+        </div>
+
         <div class="webcam-footer">
           <span class="status-label">Camera Status:</span>
-          <span class="status-off">
+          <span id="camStatus">
             <span class="dot dot-red"></span> OFF
           </span>
         </div>
@@ -93,7 +179,6 @@
     </div>
   </section>
 
-  <!-- Footer -->
   <footer class="footer">
     <div class="container footer-content">
       <div>
@@ -103,46 +188,72 @@
     </div>
   </footer>
 
-  <!-- JS -->
   <script>
+    let stream        = null;
+    let savedRoll     = "";
+    let cameraReady   = false;
+
     function logout() {
       localStorage.removeItem("loggedIn");
       window.location.href = "login.html";
     }
 
-    async function registerStudent() {
-      const name = document.getElementById("studentName").value;
-      const roll = document.getElementById("studentRoll").value;
-      const dept = document.getElementById("studentDept").value;
-      const msg = document.getElementById("msg");
+    // ── Update step indicator ──────────────────────────────────
+    function setStep(step) {
+      // Reset all
+      [1,2,3].forEach(i => {
+        document.getElementById(`bubble${i}`).className = "step-bubble";
+        document.getElementById(`label${i}`).className  = "step-label";
+      });
+      [1,2].forEach(i => {
+        document.getElementById(`line${i}`).className = "step-line";
+      });
 
-      if (!name || !roll || !dept) {
+      // Mark done steps
+      for (let i = 1; i < step; i++) {
+        document.getElementById(`bubble${i}`).className = "step-bubble done";
+        document.getElementById(`label${i}`).className  = "step-label done";
+        document.getElementById(`bubble${i}`).textContent = "✓";
+        if (i <= 2) document.getElementById(`line${i}`).className = "step-line done";
+      }
+
+      // Mark active step
+      document.getElementById(`bubble${step}`).className = "step-bubble active";
+      document.getElementById(`label${step}`).className  = "step-label active";
+    }
+
+    // ── STEP 1: Save student details ───────────────────────────
+    async function registerStudent() {
+      const name  = document.getElementById("studentName").value.trim();
+      const roll  = document.getElementById("studentRoll").value.trim();
+      const cls   = document.getElementById("studentClass").value.trim();
+      const dept  = document.getElementById("studentDept").value.trim();
+      const msg   = document.getElementById("msg");
+
+      if (!name || !roll || !cls || !dept) {
         msg.style.color = "red";
         msg.textContent = "Please fill all fields";
         return;
       }
 
       try {
-        const res = await fetch("http://127.0.0.1:5000/api/register-student", {
-          method: "POST",
+        const res  = await fetch("http://127.0.0.1:5000/api/register-student", {
+          method:  "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            name: name,
-            roll: roll,
-            department: dept
-          })
+          body:    JSON.stringify({ name, roll, class: cls, department: dept })
         });
-
         const data = await res.json();
 
         if (data.success) {
-          msg.style.color = "green";
-          msg.textContent = "Student registered successfully";
+          savedRoll = roll;
+          msg.textContent = "";
 
-          // clear form
-          studentName.value = "";
-          studentRoll.value = "";
-          studentDept.value = "";
+          // Show step 2, hide step 1 inputs
+          document.getElementById("step1Section").style.display = "none";
+          document.getElementById("step2Section").style.display = "block";
+          document.getElementById("camPlaceholder").querySelector("p").textContent =
+            "Click Step 2 to start camera";
+          setStep(2);
         } else {
           msg.style.color = "red";
           msg.textContent = data.error || "Registration failed";
@@ -151,6 +262,139 @@
         msg.style.color = "red";
         msg.textContent = "Backend not reachable";
       }
+    }
+
+    // ── STEP 2: Start camera ───────────────────────────────────
+    async function startCamera() {
+      const msg = document.getElementById("msg");
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: true });
+
+        const video = document.getElementById("video");
+        video.srcObject = stream;
+
+        // Wait for video to be ready
+        await new Promise(resolve => video.onloadedmetadata = resolve);
+        cameraReady = true;
+
+        // UI updates
+        document.getElementById("camPlaceholder").style.display = "none";
+        document.getElementById("snapshot").style.display       = "none";
+        video.style.display = "block";
+
+        document.getElementById("camDot").style.background = "lime";
+        document.getElementById("camLabel").textContent    = "Camera: ON";
+        document.getElementById("camStatus").innerHTML =
+          '<span class="dot" style="background:lime"></span> ON';
+
+        // Show step 3
+        document.getElementById("step2Section").style.display = "none";
+        document.getElementById("step3Section").style.display = "block";
+        setStep(3);
+
+      } catch (e) {
+        msg.style.color = "red";
+        msg.textContent = "Camera access denied — please allow camera permission in your browser.";
+      }
+    }
+
+    // ── STEP 3: Capture and register face ─────────────────────
+    async function captureFace() {
+      const msg = document.getElementById("msg");
+
+      if (!cameraReady) {
+        msg.style.color = "red";
+        msg.textContent = "Please start the camera first (Step 2).";
+        return;
+      }
+
+      const video  = document.getElementById("video");
+      const canvas = document.getElementById("canvas");
+
+      // Capture frame
+      canvas.width  = video.videoWidth  || 640;
+      canvas.height = video.videoHeight || 480;
+      canvas.getContext("2d").drawImage(video, 0, 0);
+      const imageData = canvas.toDataURL("image/jpeg", 0.92);
+
+      // Show snapshot preview
+      const snap  = document.getElementById("snapshot");
+      snap.src    = imageData;
+      snap.style.display  = "block";
+      video.style.display = "none";
+
+      msg.style.color = "#6b7280";
+      msg.textContent = "Uploading and processing face...";
+
+      try {
+        const res  = await fetch("http://127.0.0.1:5000/api/register-face", {
+          method:  "POST",
+          headers: { "Content-Type": "application/json" },
+          body:    JSON.stringify({ roll: savedRoll, image: imageData })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          msg.style.color = "green";
+          msg.textContent = "✔ Face registered! Student is ready for attendance.";
+
+          // Stop camera
+          if (stream) stream.getTracks().forEach(t => t.stop());
+          cameraReady = false;
+          document.getElementById("camDot").style.background = "red";
+          document.getElementById("camLabel").textContent    = "Camera: OFF";
+          document.getElementById("camStatus").innerHTML =
+            '<span class="dot dot-red"></span> OFF';
+
+          // Reset form after 3 seconds for next student
+          setTimeout(() => resetForm(), 3500);
+
+        } else {
+          // Face not detected — go back to live video for retry
+          snap.style.display  = "none";
+          video.style.display = "block";
+          msg.style.color = "red";
+          msg.textContent = data.error || "Face not detected. Please try again.";
+        }
+      } catch (e) {
+        snap.style.display  = "none";
+        video.style.display = "block";
+        msg.style.color = "red";
+        msg.textContent = "Backend not reachable";
+      }
+    }
+
+    // ── Reset for next student ─────────────────────────────────
+    function resetForm() {
+      savedRoll   = "";
+      cameraReady = false;
+      stream      = null;
+
+      document.getElementById("studentName").value  = "";
+      document.getElementById("studentRoll").value  = "";
+      document.getElementById("studentClass").value = "";
+      document.getElementById("studentDept").value  = "";
+      document.getElementById("msg").textContent   = "";
+
+      document.getElementById("step1Section").style.display = "block";
+      document.getElementById("step2Section").style.display = "none";
+      document.getElementById("step3Section").style.display = "none";
+      document.getElementById("snapshot").style.display     = "none";
+      document.getElementById("camPlaceholder").style.display = "flex";
+      document.getElementById("camPlaceholder").querySelector("p").textContent =
+        "Complete Step 1 first";
+
+      // Reset step bubbles
+      [1,2,3].forEach(i => {
+        document.getElementById(`bubble${i}`).className    = "step-bubble";
+        document.getElementById(`bubble${i}`).textContent = i;
+        document.getElementById(`label${i}`).className    = "step-label";
+      });
+      [1,2].forEach(i => {
+        document.getElementById(`line${i}`).className = "step-line";
+      });
+      document.getElementById("bubble1").className = "step-bubble active";
+      document.getElementById("label1").className  = "step-label active";
     }
   </script>
 </body>

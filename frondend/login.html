@@ -3,8 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Admin Login | Face Attendance</title>
-
+  <title>Login | Face Attendance</title>
   <link rel="stylesheet" href="css/style.css" />
 </head>
 
@@ -18,18 +17,45 @@
     <img src="assets/university-logo.png" alt="University logo watermark" />
   </div>
 
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="nav-container">
+      <div class="nav-left">
+        <div class="logo-box" style="background:none;padding:0;width:36px;height:36px;">
+          <img src="assets/faceattendance-2.png" alt="Logo"
+            style="width:36px;height:36px;border-radius:8px;object-fit:contain;" />
+        </div>
+        <span class="brand">Face Attendance</span>
+      </div>
+      <div class="nav-right">
+        <a class="nav-link" href="index.html">Home</a>
+        <a class="nav-link" href="register.html">Register</a>
+        <a class="nav-link" href="attendance.html">Attendance</a>
+        <a class="nav-link" href="dashboard.html">Dashboard</a>
+      </div>
+    </div>
+  </nav>
+
   <!-- Login Wrapper -->
   <div class="login-wrapper">
     <div class="login-card-square">
-      <h2 class="login-title">Admin Login</h2>
+
+      <!-- Logo inside login card -->
+      <div style="display:flex;align-items:center;gap:10px;justify-content:center;margin-bottom:16px;">
+        <img src="assets/faceattendance-2.png" alt="Logo"
+          style="width:44px;height:44px;border-radius:10px;object-fit:contain;" />
+        <span style="font-size:18px;font-weight:700;color:#111827;">Face Attendance</span>
+      </div>
+
+      <h2 class="login-title">Login</h2>
       <p class="login-sub">
-        Sign in to access the attendance dashboard
+        Sign in as admin or faculty to continue
       </p>
 
       <input
         type="text"
         id="username"
-        placeholder="Admin Username"
+        placeholder="Username"
         aria-label="Username"
       />
 
@@ -48,8 +74,8 @@
 
       <div class="divider">or</div>
 
-      <button class="btn btn-outline full" onclick="showCreate()">
-        Create Account
+      <button class="btn btn-outline full" onclick="window.location.href='faculty-register.html'">
+        Create Faculty Account
       </button>
 
       <a href="index.html" class="back-home">
@@ -58,25 +84,32 @@
     </div>
   </div>
 
-  <!-- JS -->
   <script>
     async function login() {
       const username = document.getElementById("username").value;
       const password = document.getElementById("password").value;
-      const msg = document.getElementById("login-msg");
+      const msg      = document.getElementById("login-msg");
 
       try {
         const response = await fetch("http://127.0.0.1:5000/api/login", {
-          method: "POST",
+          method:  "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username, password })
+          body:    JSON.stringify({ username, password })
         });
 
         const data = await response.json();
 
         if (data.success) {
-          localStorage.setItem("loggedIn", "true");
-          window.location.href = "dashboard.html";
+          localStorage.setItem("loggedIn",  "true");
+          localStorage.setItem("role",      data.role);
+          localStorage.setItem("userName",  data.name);
+          localStorage.setItem("periods",   JSON.stringify(data.periods || []));
+          localStorage.setItem("facultyId", data.id || "");
+
+          // Show detected role briefly before redirect
+          msg.style.color = "green";
+          msg.textContent = `✔ Logged in as ${data.role === "admin" ? "Admin" : "Faculty — " + data.name}`;
+          setTimeout(() => window.location.href = "dashboard.html", 800);
         } else {
           msg.style.color = "red";
           msg.textContent = "Invalid credentials";
@@ -87,9 +120,6 @@
       }
     }
 
-    function showCreate() {
-      alert("Create account will be enabled after backend integration");
-    }
   </script>
 </body>
 </html>

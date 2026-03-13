@@ -4,63 +4,223 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Admin Dashboard | Face Attendance</title>
-
   <link rel="stylesheet" href="css/style.css" />
-
   <script>
     if (localStorage.getItem("loggedIn") !== "true") {
       window.location.href = "login.html";
     }
   </script>
+  <style>
+    .alert-banner {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: 10px;
+      padding: 12px 18px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+      color: #991b1b;
+    }
+    .summary-table { width:100%; border-collapse:collapse; font-size:13px; }
+    .summary-table th {
+      background:#f9fafb; padding:10px 12px;
+      text-align:left; font-weight:600;
+      color:#374151; border-bottom:2px solid #e5e7eb;
+    }
+    .summary-table td { padding:10px 12px; border-bottom:1px solid #f3f4f6; }
+    .pct-bar-bg {
+      background:#f3f4f6; border-radius:20px;
+      height:8px; width:120px; overflow:hidden; display:inline-block;
+    }
+    .pct-bar { height:100%; border-radius:20px; }
+    .badge-ok       { background:#d1fae5;color:#065f46;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:600; }
+    .badge-warn     { background:#fef3c7;color:#92400e;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:600; }
+    .badge-danger   { background:#fee2e2;color:#991b1b;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:600; }
+    .badge-critical { background:#7f1d1d;color:#fff;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:600; }
+    .threshold-row  { display:flex;align-items:center;gap:10px;margin-bottom:14px;font-size:13px; }
+  </style>
+  <style>
+    .edit-select {
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      padding: 4px 8px;
+      font-size: 13px;
+      cursor: pointer;
+      background: #fff;
+    }
+    .edit-select:disabled {
+      background: #f3f4f6;
+      color: #9ca3af;
+      cursor: not-allowed;
+    }
+    .save-btn {
+      font-size: 12px;
+      padding: 4px 12px;
+      border-radius: 6px;
+      border: none;
+      background: #6366f1;
+      color: #fff;
+      cursor: pointer;
+      margin-left: 6px;
+    }
+    .save-btn:hover   { background: #4f46e5; }
+    .save-btn:disabled {
+      background: #e5e7eb;
+      color: #9ca3af;
+      cursor: not-allowed;
+    }
+    .frozen-badge {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 20px;
+      background: #fee2e2;
+      color: #991b1b;
+      margin-left: 6px;
+    }
+    .saved-badge {
+      font-size: 11px;
+      color: #10b981;
+      margin-left: 6px;
+      display: none;
+    }
+    .freeze-notice {
+      background: #fff7ed;
+      border: 1px solid #fed7aa;
+      border-radius: 10px;
+      padding: 10px 16px;
+      font-size: 13px;
+      color: #92400e;
+      margin-bottom: 16px;
+      display: none;
+    }
+  </style>
 </head>
-
 <body>
   <div class="bg-pattern"></div>
-
   <div class="logo-watermark">
-    <img src="assets/university-logo.png" alt="University logo watermark" />
+    <img src="assets/university-logo.png" alt="" />
   </div>
 
   <nav class="navbar">
     <div class="nav-container">
       <div class="nav-left">
-        <div class="logo-box">⌁</div>
+        <div class="logo-box" style="background:none;padding:0;width:36px;height:36px;">
+          <img src="assets/faceattendance-2.png" alt="Logo"
+            style="width:36px;height:36px;border-radius:8px;object-fit:contain;" />
+        </div>
         <span class="brand">Face Attendance</span>
       </div>
       <div class="nav-right">
         <a class="nav-link" href="index.html">Home</a>
-        <a class="nav-link" href="register.html">Register</a>
+        <a class="nav-link" href="register.html" id="registerLink">Register</a>
         <a class="nav-link" href="attendance.html">Attendance</a>
         <a class="nav-link active" href="dashboard.html">Dashboard</a>
+        <span style="font-size:13px;color:#6b7280;margin-right:4px" id="userTag"></span>
         <a class="btn btn-outline" href="#" onclick="logout()">Logout</a>
       </div>
     </div>
   </nav>
+  <script>
+    const _role = localStorage.getItem("role");
+    const _name = localStorage.getItem("userName");
+    document.getElementById("userTag").textContent = _name || "";
+    if (_role !== "admin") {
+      const rl = document.getElementById("registerLink");
+      if (rl) rl.style.display = "none";
+    }
+  </script>
 
   <section class="container section">
-    <h1 class="section-title">Admin Dashboard</h1>
+    <h1 class="section-title" id="dashTitle">Dashboard</h1>
 
-    <div style="display:flex;gap:14px;margin-bottom:20px">
-      <input type="date" id="datePicker" />
+    <!-- Filters -->
+    <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:flex-end;">
+      <div>
+        <label style="font-size:12px;color:#6b7280;display:block;margin-bottom:4px">Date</label>
+        <input type="date" id="datePicker" />
+      </div>
+      <div>
+        <label style="font-size:12px;color:#6b7280;display:block;margin-bottom:4px">Period</label>
+        <select id="periodPicker" style="height:38px;padding:0 10px;border:1px solid #e5e7eb;border-radius:8px;">
+          <option value="">All Periods</option>
+          <option value="1">Period 1 (09:00–09:50)</option>
+          <option value="2">Period 2 (10:00–10:50)</option>
+          <option value="3">Period 3 (11:00–11:50)</option>
+          <option value="4">Period 4 (12:00–12:50)</option>
+          <option value="5">Period 5 (13:40–14:30)</option>
+          <option value="6">Period 6 (14:40–15:30)</option>
+          <option value="7">Period 7 (15:40–16:30)</option>
+        </select>
+      </div>
       <button class="btn btn-outline" onclick="loadData()">Load</button>
       <button class="btn btn-primary" onclick="exportCSV()">Export CSV</button>
       <button class="btn btn-primary" onclick="exportPDF()">Export PDF</button>
     </div>
 
-    <div class="quick-grid">
-      <div class="quick-tile">👥 Total <strong id="totalStudents">0</strong></div>
-      <div class="quick-tile">✅ Present <strong id="presentCount">0</strong></div>
-      <div class="quick-tile">⏱ Late <strong id="lateCount">0</strong></div>
-      <div class="quick-tile">❌ Absent <strong id="absentCount">0</strong></div>
-      <div class="quick-tile">📊 Attendance % <strong id="percent">0%</strong></div>
+    <!-- Freeze notice (shown when date > 5 days ago) -->
+    <div class="freeze-notice" id="freezeNotice">
+      🔒 Records older than 5 days are <strong>frozen</strong> and cannot be edited.
     </div>
+
+    <!-- Alert banner (shown when students below threshold) -->
+    <div class="alert-banner" id="alertBanner" style="display:none;">
+      🚨 <span id="alertText"></span>
+    </div>
+
+    <!-- Stats -->
+    <div class="quick-grid">
+      <div class="quick-tile">👥 Total   <strong id="totalStudents">0</strong></div>
+      <div class="quick-tile">✅ Present <strong id="presentCount">0</strong></div>
+      <div class="quick-tile">⏱ Late    <strong id="lateCount">0</strong></div>
+      <div class="quick-tile">❌ Absent  <strong id="absentCount">0</strong></div>
+      <div class="quick-tile">📊 %       <strong id="percent">0%</strong></div>
+    </div>
+  </section>
+
+  <!-- Attendance Summary / 75% Alert Section -->
+  <section class="container section" id="summarySection">
+    <h2 class="section-title" style="font-size:18px;">📊 Student Attendance Summary</h2>
+    <p style="font-size:13px;color:#6b7280;margin-bottom:14px;">
+      Overall attendance across all periods and dates. Students below threshold are flagged.
+    </p>
+
+    <div class="threshold-row">
+      <label style="color:#374151;font-weight:500;">Alert Threshold:</label>
+      <input type="number" id="thresholdInput" value="75" min="1" max="100"
+        style="width:70px;padding:4px 8px;border:1px solid #e5e7eb;border-radius:6px;font-size:13px;" />
+      <span style="color:#6b7280">%</span>
+      <button class="btn btn-outline" style="font-size:12px;padding:4px 14px"
+        onclick="loadSummary()">Refresh</button>
+    </div>
+
+    <div id="summaryContainer">
+      <p style="color:#9ca3af;font-size:13px;">Loading...</p>
+    </div>
+  </section>
+
+  <!-- Faculty Period Assignment (admin only) -->
+  <section class="container section" id="facultyPanel" style="display:none;">
+    <h2 class="section-title" style="font-size:18px;">Assign Periods to Faculty</h2>
+    <p style="font-size:13px;color:#6b7280;margin-bottom:16px;">
+      Check which periods each faculty member is responsible for.
+    </p>
+    <div id="facultyList"></div>
   </section>
 
   <section class="container section">
     <table class="dashboard-table">
       <thead>
         <tr>
-          <th>#</th><th>Name</th><th>Roll</th><th>Time</th><th>Status</th>
+          <th>#</th>
+          <th>Name</th>
+          <th>Roll</th>
+          <th>Class</th>
+          <th>Period</th>
+          <th>Time</th>
+          <th>Status</th>
+          <th id="editHeader">Edit</th>
         </tr>
       </thead>
       <tbody id="attendanceBody"></tbody>
@@ -68,53 +228,395 @@
   </section>
 
   <script>
+    let currentRecords = [];
+    let isFrozen       = false;
+
     function logout() {
-      localStorage.removeItem("loggedIn");
+      ["loggedIn","role","userName","periods","facultyId"].forEach(k => localStorage.removeItem(k));
       window.location.href = "login.html";
     }
 
+    const DASH_ROLE        = localStorage.getItem("role");
+    const DASH_NAME        = localStorage.getItem("userName");
+    const DASH_PERIODS     = JSON.parse(localStorage.getItem("periods") || "[]");
+
+    const PERIOD_INFO = {
+      1:"Period 1 (09:00–09:50)", 2:"Period 2 (10:00–10:50)",
+      3:"Period 3 (11:00–11:50)", 4:"Period 4 (12:00–12:50)",
+      5:"Period 5 (13:40–14:30)", 6:"Period 6 (14:40–15:30)",
+      7:"Period 7 (15:40–16:30)"
+    };
+
+    function logout() {
+      ["loggedIn","role","userName","periods","facultyId"].forEach(k => localStorage.removeItem(k));
+      window.location.href = "login.html";
+    }
+
+    // ── Setup dashboard based on role ──────────────────────────
+    function setupDashboard() {
+      // Update title
+      const title = document.getElementById("dashTitle");
+      if (title) title.textContent = DASH_ROLE === "admin" ? "Admin Dashboard" : `${DASH_NAME}'s Dashboard`;
+
+      // Filter period picker for faculty
+      const picker = document.getElementById("periodPicker");
+      if (DASH_ROLE !== "admin" && DASH_PERIODS.length > 0) {
+        // Remove all options except "All Periods" placeholder
+        picker.innerHTML = "";
+        // Add only assigned periods
+        DASH_PERIODS.forEach(pid => {
+          const opt = document.createElement("option");
+          opt.value       = pid;
+          opt.textContent = PERIOD_INFO[pid] || `Period ${pid}`;
+          picker.appendChild(opt);
+        });
+        // Auto-select first assigned period
+        picker.value = DASH_PERIODS[0];
+      }
+
+      // Hide admin-only sections for faculty
+      if (DASH_ROLE !== "admin") {
+        const facultySection  = document.getElementById("facultyPanel");
+        const editHeader      = document.getElementById("editHeader");
+        if (facultySection) facultySection.style.display = "none";
+        if (editHeader)     editHeader.style.display     = "none";
+      }
+    }
+    async function loadFacultyPanel() {
+      if (DASH_ROLE !== "admin") return;
+      const panel = document.getElementById("facultyPanel");
+      if (!panel) return;
+      panel.style.display = "block";
+
+      try {
+        const res  = await fetch("http://127.0.0.1:5000/api/faculty");
+        const data = await res.json();
+
+        const periodLabels = {
+          1:"P1 09:00", 2:"P2 10:00", 3:"P3 11:00", 4:"P4 12:00",
+          5:"P5 13:40", 6:"P6 14:40", 7:"P7 15:40"
+        };
+
+        const container = document.getElementById("facultyList");
+        container.innerHTML = "";
+
+        if (data.faculty.length === 0) {
+          container.innerHTML = `<p style="color:#9ca3af;font-size:13px">No faculty registered yet.</p>`;
+          return;
+        }
+
+        data.faculty.forEach(f => {
+          const div = document.createElement("div");
+          div.style.cssText = "border:1px solid #e5e7eb;border-radius:10px;padding:14px;margin-bottom:12px;";
+          div.innerHTML = `
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;">
+              <div>
+                <strong style="font-size:14px;color:#111827">${f.name}</strong>
+                <span style="font-size:12px;color:#6b7280;margin-left:8px">${f.faculty_id}</span><br>
+                <span style="font-size:12px;color:#6b7280">${f.department} · ${f.subject}</span>
+              </div>
+              <button class="btn btn-outline" style="font-size:12px;padding:4px 12px"
+                onclick="savePeriods(${f.id}, this)">Save</button>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;" id="periods-${f.id}">
+              ${[1,2,3,4,5,6,7].map(pid => `
+                <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;">
+                  <input type="checkbox" value="${pid}"
+                    ${f.periods.includes(pid) ? "checked" : ""}
+                    style="cursor:pointer;">
+                  ${periodLabels[pid]}
+                </label>`).join("")}
+            </div>`;
+          container.appendChild(div);
+        });
+      } catch(e) {
+        document.getElementById("facultyList").innerHTML =
+          `<p style="color:red;font-size:13px">Backend not reachable</p>`;
+      }
+    }
+
+    async function savePeriods(facultyDbId, btn) {
+      const checks  = document.querySelectorAll(`#periods-${facultyDbId} input[type=checkbox]`);
+      const periods = Array.from(checks).filter(c => c.checked).map(c => parseInt(c.value));
+      btn.textContent = "Saving...";
+      try {
+        const res  = await fetch("http://127.0.0.1:5000/api/assign-periods", {
+          method:  "POST",
+          headers: { "Content-Type": "application/json" },
+          body:    JSON.stringify({ faculty_id: facultyDbId, periods })
+        });
+        const data = await res.json();
+        btn.textContent = data.success ? "✔ Saved" : "Error";
+        setTimeout(() => btn.textContent = "Save", 2000);
+      } catch(e) {
+        btn.textContent = "Error";
+      }
+    }
+
+    // ── Check if a date is frozen (older than 5 days) ──────────
+    function checkFrozen(dateStr) {
+      if (!dateStr) return false;
+      const record = new Date(dateStr);
+      const today  = new Date();
+      today.setHours(0, 0, 0, 0);
+      const diff = Math.floor((today - record) / (1000 * 60 * 60 * 24));
+      return diff > 5;
+    }
+
+    // ── Load data ──────────────────────────────────────────────
     function loadData() {
-      const date = document.getElementById("datePicker").value;
-      fetch(`http://127.0.0.1:5000/api/attendance?date=${date}`)
+      const date   = document.getElementById("datePicker").value;
+      let   period = document.getElementById("periodPicker").value;
+
+      // Faculty can only see their assigned periods
+      if (DASH_ROLE !== "admin") {
+        // If selected period not in assigned, force first assigned
+        if (!DASH_PERIODS.includes(parseInt(period))) {
+          period = DASH_PERIODS[0] || "";
+          document.getElementById("periodPicker").value = period;
+        }
+      }
+
+      isFrozen = checkFrozen(date);
+      document.getElementById("freezeNotice").style.display = isFrozen ? "block" : "none";
+
+      const url = `http://127.0.0.1:5000/api/attendance?date=${date}${period ? "&period=" + period : ""}`;
+
+      fetch(url)
         .then(r => r.json())
         .then(d => {
           document.getElementById("totalStudents").textContent = d.total_students;
-          document.getElementById("presentCount").textContent = d.present;
-          document.getElementById("lateCount").textContent = d.late;
-          document.getElementById("absentCount").textContent = d.absent;
-          document.getElementById("percent").textContent = d.attendance_percent + "%";
+          document.getElementById("presentCount").textContent  = d.present;
+          document.getElementById("lateCount").textContent     = d.late;
+          document.getElementById("absentCount").textContent   = d.absent;
+          document.getElementById("percent").textContent       = d.attendance_percent + "%";
 
-          const tbody = document.getElementById("attendanceBody");
-          tbody.innerHTML = "";
-          d.records.forEach((r, i) => {
-            tbody.innerHTML += `
-              <tr>
-                <td>${i + 1}</td>
-                <td>${r.name}</td>
-                <td>${r.roll}</td>
-                <td>${r.time}</td>
-                <td>${r.status}</td>
-              </tr>`;
-          });
-        });
+          currentRecords = d.records;
+          renderTable(date, period);
+        })
+        .catch(() => alert("Backend not reachable"));
     }
 
+    // ── Render table with editable status ─────────────────────
+    function renderTable(date, period) {
+      const tbody = document.getElementById("attendanceBody");
+      tbody.innerHTML = "";
+
+      if (currentRecords.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:#9ca3af;padding:20px">No records found</td></tr>`;
+        return;
+      }
+
+      currentRecords.forEach((r, i) => {
+        const color     = { Present:"#10b981", Late:"#f59e0b", Absent:"#ef4444" }[r.status] || "#9ca3af";
+        const periodId  = period || getPeriodIdFromLabel(r.period);
+        const rowId     = `row-${i}`;
+
+        const tr = document.createElement("tr");
+        tr.id    = rowId;
+        tr.innerHTML = `
+          <td>${i + 1}</td>
+          <td>${r.name}</td>
+          <td>${r.roll}</td>
+          <td>${r.class || "—"}</td>
+          <td style="font-size:12px;color:#6b7280">${r.period}</td>
+          <td>${r.time}</td>
+          <td>
+            <span id="statusText-${i}" style="color:${color};font-weight:600">${r.status}</span>
+          </td>
+          <td>
+            ${(isFrozen || DASH_ROLE !== "admin")
+              ? (isFrozen ? `<span class="frozen-badge">🔒 Frozen</span>` : `<span style="font-size:12px;color:#9ca3af">—</span>`)
+              : `<select class="edit-select" id="editSelect-${i}" onchange="onSelectChange(${i})">
+                   <option value="Present" ${r.status==="Present"?"selected":""}>Present</option>
+                   <option value="Late"    ${r.status==="Late"   ?"selected":""}>Late</option>
+                   <option value="Absent"  ${r.status==="Absent" ?"selected":""}>Absent</option>
+                 </select>
+                 <button class="save-btn" id="saveBtn-${i}"
+                   onclick="saveEdit(${i}, '${r.roll}', '${date}', ${periodId})"
+                   disabled>
+                   Save
+                 </button>
+                 <span class="saved-badge" id="savedBadge-${i}">✔ Saved</span>`
+            }
+          </td>`;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // ── Enable Save button when selection changes ──────────────
+    function onSelectChange(i) {
+      const select   = document.getElementById(`editSelect-${i}`);
+      const saveBtn  = document.getElementById(`saveBtn-${i}`);
+      const original = currentRecords[i].status;
+      saveBtn.disabled = (select.value === original);
+      document.getElementById(`savedBadge-${i}`).style.display = "none";
+    }
+
+    // ── Save edit ──────────────────────────────────────────────
+    async function saveEdit(i, roll, date, periodId) {
+      const select    = document.getElementById(`editSelect-${i}`);
+      const saveBtn   = document.getElementById(`saveBtn-${i}`);
+      const newStatus = select.value;
+
+      saveBtn.textContent = "Saving...";
+      saveBtn.disabled    = true;
+
+      try {
+        const res  = await fetch("http://127.0.0.1:5000/api/update-attendance", {
+          method:  "POST",
+          headers: { "Content-Type": "application/json" },
+          body:    JSON.stringify({ roll, date, period_id: periodId, status: newStatus })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          // Update local record
+          currentRecords[i].status = newStatus;
+
+          // Update status text colour
+          const color = { Present:"#10b981", Late:"#f59e0b", Absent:"#ef4444" }[newStatus];
+          document.getElementById(`statusText-${i}`).textContent = newStatus;
+          document.getElementById(`statusText-${i}`).style.color = color;
+
+          saveBtn.textContent = "Save";
+          document.getElementById(`savedBadge-${i}`).style.display = "inline";
+
+          // Refresh stats
+          loadStats(date, document.getElementById("periodPicker").value);
+        } else {
+          alert(data.error || "Failed to save");
+          saveBtn.textContent = "Save";
+          saveBtn.disabled    = false;
+        }
+      } catch (e) {
+        alert("Backend not reachable");
+        saveBtn.textContent = "Save";
+        saveBtn.disabled    = false;
+      }
+    }
+
+    // ── Refresh just the stats row after an edit ───────────────
+    function loadStats(date, period) {
+      const url = `http://127.0.0.1:5000/api/attendance?date=${date}${period ? "&period=" + period : ""}`;
+      fetch(url).then(r => r.json()).then(d => {
+        document.getElementById("totalStudents").textContent = d.total_students;
+        document.getElementById("presentCount").textContent  = d.present;
+        document.getElementById("lateCount").textContent     = d.late;
+        document.getElementById("absentCount").textContent   = d.absent;
+        document.getElementById("percent").textContent       = d.attendance_percent + "%";
+      });
+    }
+
+    // ── Helper: get period id from label string ────────────────
+    function getPeriodIdFromLabel(label) {
+      const map = {
+        "Period 1":1,"Period 2":2,"Period 3":3,"Period 4":4,
+        "Period 5":5,"Period 6":6,"Period 7":7
+      };
+      return map[label] || 1;
+    }
+
+    // ── Exports ────────────────────────────────────────────────
     function exportCSV() {
-      const date = document.getElementById("datePicker").value;
+      const date   = document.getElementById("datePicker").value;
+      const period = document.getElementById("periodPicker").value;
       window.location.href =
-        `http://127.0.0.1:5000/api/export-csv?date=${date}`;
+        `http://127.0.0.1:5000/api/export-csv?date=${date}${period ? "&period=" + period : ""}`;
     }
 
     function exportPDF() {
-      const date = document.getElementById("datePicker").value;
+      const date   = document.getElementById("datePicker").value;
+      const period = document.getElementById("periodPicker").value;
       window.location.href =
-        `http://127.0.0.1:5000/api/export-pdf?date=${date}`;
+        `http://127.0.0.1:5000/api/export-pdf?date=${date}${period ? "&period=" + period : ""}`;
+    }
+
+    // ── Attendance summary / 75% alert ────────────────────────
+    async function loadSummary() {
+      const threshold = document.getElementById("thresholdInput").value || 75;
+      const container = document.getElementById("summaryContainer");
+      container.innerHTML = `<p style="color:#9ca3af;font-size:13px;">Loading...</p>`;
+
+      try {
+        const res  = await fetch(`http://127.0.0.1:5000/api/attendance-summary?threshold=${threshold}`);
+        const data = await res.json();
+
+        // Show/hide alert banner
+        const banner = document.getElementById("alertBanner");
+        if (data.below_count > 0) {
+          banner.style.display = "flex";
+          document.getElementById("alertText").textContent =
+            `${data.below_count} student${data.below_count > 1 ? "s are" : " is"} below ${threshold}% attendance and may be detained.`;
+        } else {
+          banner.style.display = "none";
+        }
+
+        if (data.students.length === 0) {
+          container.innerHTML = `<p style="color:#9ca3af;font-size:13px;">No students registered yet.</p>`;
+          return;
+        }
+
+        // Build table
+        let html = `
+          <table class="summary-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Name</th>
+                <th>Roll</th>
+                <th>Class</th>
+                <th>Attended</th>
+                <th>Percentage</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>`;
+
+        data.students.forEach((s, i) => {
+          const pct     = s.percentage;
+          const barColor = pct >= 75 ? "#10b981" : pct >= 60 ? "#f59e0b" : "#ef4444";
+          const badge    = pct >= 75
+            ? `<span class="badge-ok">Good</span>`
+            : pct >= 60
+            ? `<span class="badge-warn">⚠ Low</span>`
+            : `<span class="badge-critical">🚨 Critical</span>`;
+
+          const rowBg = s.critical ? "background:#fff5f5;" : s.below ? "background:#fffbeb;" : "";
+
+          html += `
+            <tr style="${rowBg}">
+              <td>${i + 1}</td>
+              <td style="font-weight:${s.below ? '600' : '400'}">${s.name}</td>
+              <td>${s.roll}</td>
+              <td>${s.class}</td>
+              <td style="color:#6b7280">${s.attended} / ${s.total}</td>
+              <td>
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <div class="pct-bar-bg">
+                    <div class="pct-bar" style="width:${Math.min(pct,100)}%;background:${barColor}"></div>
+                  </div>
+                  <span style="font-weight:600;color:${barColor}">${pct}%</span>
+                </div>
+              </td>
+              <td>${badge}</td>
+            </tr>`;
+        });
+
+        html += `</tbody></table>`;
+        container.innerHTML = html;
+
+      } catch(e) {
+        container.innerHTML = `<p style="color:red;font-size:13px;">Backend not reachable</p>`;
+      }
     }
 
     document.addEventListener("DOMContentLoaded", () => {
-      document.getElementById("datePicker").value =
-        new Date().toISOString().split("T")[0];
+      document.getElementById("datePicker").value = new Date().toISOString().split("T")[0];
+      setupDashboard();
       loadData();
+      loadSummary();
+      loadFacultyPanel();
     });
   </script>
 </body>

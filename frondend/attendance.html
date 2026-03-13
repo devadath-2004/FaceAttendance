@@ -4,121 +4,196 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Take Attendance | Face Attendance</title>
-
   <link rel="stylesheet" href="css/style.css" />
-
-  <!-- Protect route -->
   <script>
     if (localStorage.getItem("loggedIn") !== "true") {
       window.location.href = "login.html";
     }
   </script>
+  <style>
+    .period-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    @media(max-width:700px){ .period-grid{ grid-template-columns: repeat(2,1fr); } }
+
+    .period-tile {
+      border: 2px solid #e5e7eb;
+      border-radius: 10px;
+      padding: 10px 12px;
+      cursor: pointer;
+      background: #fff;
+      transition: all .15s;
+      text-align: center;
+    }
+    .period-tile:hover    { border-color: #6366f1; background: #f5f3ff; }
+    .period-tile.active   { border-color: #6366f1; background: #ede9fe; }
+    .period-tile.current  { border-color: #10b981; }
+    .period-tile.current.active { background: #d1fae5; border-color:#10b981; }
+    .period-tile .p-label { font-size: 13px; font-weight: 600; color: #374151; }
+    .period-tile .p-time  { font-size: 11px; color: #9ca3af; margin-top: 2px; }
+    .period-tile .p-badge {
+      font-size: 10px; font-weight: 600; padding: 2px 8px;
+      border-radius: 20px; margin-top: 4px; display: inline-block;
+    }
+    .badge-now    { background: #d1fae5; color: #065f46; }
+    .badge-done   { background: #f3f4f6; color: #9ca3af; }
+    .badge-upcoming { background: #eff6ff; color: #1e40af; }
+
+    .status-bar {
+      display: flex; align-items: center; gap: 10px;
+      background: #f9fafb; border: 1px solid #e5e7eb;
+      border-radius: 10px; padding: 10px 16px;
+      margin-bottom: 16px; flex-wrap: wrap;
+      font-size: 13px;
+    }
+    .s-badge {
+      padding: 3px 12px; border-radius: 20px;
+      font-weight: 600; font-size: 12px; color: #fff;
+    }
+    .s-present { background: #10b981; }
+    .s-late    { background: #f59e0b; }
+    .s-absent  { background: #ef4444; }
+    .s-none    { background: #9ca3af; }
+  </style>
 </head>
-
 <body>
-
-  <!-- Background -->
   <div class="bg-pattern"></div>
-
-  <!-- Watermark -->
   <div class="logo-watermark">
-    <img src="assets/university-logo.png" alt="University logo watermark" />
+    <img src="assets/university-logo.png" alt="" />
   </div>
 
-  <!-- Navbar -->
   <nav class="navbar">
     <div class="nav-container">
       <div class="nav-left">
-        <div class="logo-box">⌁</div>
+        <div class="logo-box" style="background:none;padding:0;width:36px;height:36px;">
+          <img src="assets/faceattendance-2.png" alt="Logo"
+            style="width:36px;height:36px;border-radius:8px;object-fit:contain;" />
+        </div>
         <span class="brand">Face Attendance</span>
       </div>
       <div class="nav-right">
         <a class="nav-link" href="index.html">Home</a>
-        <a class="nav-link" href="register.html">Register</a>
+        <a class="nav-link" href="register.html" id="registerLink">Register</a>
         <a class="nav-link active" href="attendance.html">Attendance</a>
         <a class="nav-link" href="dashboard.html">Dashboard</a>
+        <span style="font-size:13px;color:#6b7280;margin-right:4px" id="userTag"></span>
         <a class="btn btn-outline" href="#" onclick="logout()">Logout</a>
       </div>
     </div>
   </nav>
+  <script>
+    // Hide Register link for faculty
+    if (localStorage.getItem("role") !== "admin") {
+      const rl = document.getElementById("registerLink");
+      if (rl) rl.style.display = "none";
+    }
+  </script>
 
-  <!-- Content -->
   <section class="container section">
     <h1 class="section-title center">Take Attendance</h1>
-    <p class="section-subtitle center">
-      Face recognition based attendance (demo mode)
-    </p>
+    <p class="section-subtitle center">Select a period, then start face recognition</p>
+
+    <!-- Period selector -->
+    <h3 style="font-size:15px;color:#374151;margin-bottom:10px">Select Period</h3>
+    <div class="period-grid" id="periodGrid">
+      <!-- Filled by JS -->
+    </div>
+
+    <!-- Live status bar -->
+    <div class="status-bar">
+      <span style="color:#6b7280">Selected:</span>
+      <strong id="selectedPeriodLabel" style="color:#374151">None</strong>
+      <span style="color:#6b7280;margin-left:8px">Status now:</span>
+      <span class="s-badge s-none" id="statusBadge">—</span>
+      <span style="color:#9ca3af;font-size:12px" id="statusDesc"></span>
+      <span style="margin-left:auto;color:#374151" id="clockDisplay"></span>
+    </div>
 
     <div class="hero-grid">
-      <!-- Camera (Demo) -->
+      <!-- Webcam -->
       <div class="webcam-card">
         <div class="webcam-top-left">
-          <span class="dot dot-red"></span>
-          Camera: OFF
+          <span class="dot" id="camDot" style="background:red"></span>
+          <span id="camLabel">Camera: OFF</span>
         </div>
 
-        <div class="webcam-body">
-          <div class="webcam-frame"></div>
-          <div class="webcam-icon">🎥</div>
-          <div class="webcam-info">
-            <h3>Camera Preview</h3>
-            <p style="color:#6b7280;font-size:14px">
-              Demo camera placeholder
-            </p>
-            <button class="btn btn-primary" onclick="startDemo()">
-              Start Attendance (Demo)
-            </button>
+        <div class="webcam-body" style="position:relative;">
+          <video id="video" autoplay playsinline
+            style="display:none;width:100%;border-radius:12px;"></video>
+          <canvas id="canvas" style="display:none;"></canvas>
+
+          <div id="camPlaceholder">
+            <div class="webcam-frame"></div>
+            <div class="webcam-icon">🎥</div>
+            <div class="webcam-info">
+              <h3>Camera Preview</h3>
+              <p style="color:#6b7280;font-size:14px">Select a period above, then start</p>
+            </div>
           </div>
+        </div>
+
+        <!-- Button outside webcam-body -->
+        <div style="padding:14px;text-align:center;">
+          <button id="startBtn" class="btn btn-primary" onclick="startAttendance()" style="width:100%">
+            Start Attendance
+          </button>
         </div>
 
         <div class="webcam-footer">
           <span class="status-label">Face Detection:</span>
-          <span class="status-off">
+          <span id="detectionStatus" class="status-off">
             <span class="dot dot-red"></span> OFF
           </span>
         </div>
       </div>
 
-      <!-- Result / Manual Marking -->
+      <!-- Result Panel -->
       <div class="login-card-square">
         <h3 class="login-title">Recognition Result</h3>
-        <p class="login-sub">
-          Demo mode – manual roll entry
-        </p>
+        <p class="login-sub" id="resultSub">Waiting for face...</p>
 
-        <!-- 🔽 Added inputs (UI style unchanged) -->
-        <input
-          type="text"
-          id="roll"
-          placeholder="Roll Number"
-        />
+        <div id="resultBox" style="
+          background:#f9fafb; border:1px solid #e5e7eb;
+          border-radius:10px; padding:16px; margin-top:14px;
+          min-height:90px; text-align:left;">
+          <p style="color:#9ca3af;font-size:14px">No recognition yet.</p>
+        </div>
 
-        <select id="status" style="margin-top:10px">
-          <option value="Present">Present</option>
-          <option value="Late">Late</option>
-          <option value="Absent">Absent</option>
-        </select>
-        
-        <button
-          class="btn btn-primary full"
-          style="margin-top:16px"
-          onclick="markAttendance()"
-        >
-          Mark Attendance
+        <div style="margin-top:18px;">
+          <strong style="font-size:14px;color:#374151">Marked This Period</strong>
+          <ul id="markedList" style="
+            margin-top:8px; padding:0; list-style:none;
+            max-height:160px; overflow-y:auto; font-size:13px; color:#374151;">
+            <li style="color:#9ca3af">None yet</li>
+          </ul>
+        </div>
+
+        <button id="stopBtn" class="btn btn-outline full"
+          style="margin-top:14px;display:none" onclick="stopAttendance()">
+          Stop Camera
         </button>
 
-        <p id="msg" style="margin-top:12px"></p>
-
-        <!-- Display area -->
-        <div style="text-align:left;color:#374151;margin-top:14px">
-          <p><strong>Status:</strong> Saved to database</p>
-          <p><strong>Mode:</strong> Demo</p>
+        <!-- Manual fallback -->
+        <div style="margin-top:16px;border-top:1px solid #e5e7eb;padding-top:14px">
+          <p style="font-size:12px;color:#9ca3af;margin-bottom:8px">Manual fallback</p>
+          <input type="text" id="roll" placeholder="Roll Number" />
+          <select id="status" style="margin-top:8px">
+            <option value="Present">Present</option>
+            <option value="Late">Late</option>
+            <option value="Absent">Absent</option>
+          </select>
+          <button class="btn btn-primary full" style="margin-top:10px" onclick="markManual()">
+            Mark Manually
+          </button>
+          <p id="manualMsg" style="margin-top:8px;font-size:13px;"></p>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- Footer -->
   <footer class="footer">
     <div class="container footer-content">
       <div>
@@ -128,54 +203,291 @@
     </div>
   </footer>
 
-  <!-- JS -->
   <script>
+    let stream              = null;
+    let recognitionInterval = null;
+    let selectedPeriod      = null;
+    let periods             = [];
+    const markedRolls       = new Set();
+
+    // ── Role & assigned periods from localStorage ──────────────
+    const ROLE             = localStorage.getItem("role") || "faculty";
+    const USER_NAME        = localStorage.getItem("userName") || "";
+    const ASSIGNED_PERIODS = JSON.parse(localStorage.getItem("periods") || "[]");
+
     function logout() {
-      localStorage.removeItem("loggedIn");
+      ["loggedIn","role","userName","periods","facultyId"].forEach(k => localStorage.removeItem(k));
       window.location.href = "login.html";
     }
 
-    function startDemo() {
-      alert("Demo camera running. Face recognition will be added next.");
+    // ── Init ───────────────────────────────────────────────────
+    window.addEventListener("DOMContentLoaded", () => {
+      // Show logged-in user name in navbar
+      const tag = document.getElementById("userTag");
+      if (tag) tag.textContent = USER_NAME;
+
+      loadPeriods();
+      setInterval(updateClock, 10000);
+      updateClock();
+    });
+
+    // ── Clock ──────────────────────────────────────────────────
+    function updateClock() {
+      const now = new Date();
+      document.getElementById("clockDisplay").textContent =
+        now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      renderPeriodGrid();   // refresh current period highlight
+      updateStatusBar();
     }
 
-    async function markAttendance() {
-      const roll = document.getElementById("roll").value;
-      const status = document.getElementById("status").value;
-      const msg = document.getElementById("msg");
+    // ── Load periods from backend ──────────────────────────────
+    async function loadPeriods() {
+      try {
+        const res  = await fetch("http://127.0.0.1:5000/api/periods");
+        const data = await res.json();
+        let allPeriods = data.periods;
 
-      if (!roll) {
-        msg.style.color = "red";
-        msg.textContent = "Please enter roll number";
+        // Faculty only sees their assigned periods
+        if (ROLE === "faculty" && ASSIGNED_PERIODS.length > 0) {
+          allPeriods = allPeriods.filter(p => ASSIGNED_PERIODS.includes(p.id));
+        }
+        periods = allPeriods;
+
+        if (data.current_period) {
+          // Auto-select only if it's in the faculty's assigned periods
+          const current = periods.find(p => p.id === data.current_period.id);
+          if (current) selectedPeriod = current;
+        }
+        renderPeriodGrid();
+        updateStatusBar();
+      } catch (e) {
+        let allPeriods = [
+          {id:1, label:"Period 1", start:"09:00", end:"09:50"},
+          {id:2, label:"Period 2", start:"10:00", end:"10:50"},
+          {id:3, label:"Period 3", start:"11:00", end:"11:50"},
+          {id:4, label:"Period 4", start:"12:00", end:"12:50"},
+          {id:5, label:"Period 5", start:"13:40", end:"14:30"},
+          {id:6, label:"Period 6", start:"14:40", end:"15:30"},
+          {id:7, label:"Period 7", start:"15:40", end:"16:30"},
+        ];
+        if (ROLE === "faculty" && ASSIGNED_PERIODS.length > 0) {
+          allPeriods = allPeriods.filter(p => ASSIGNED_PERIODS.includes(p.id));
+        }
+        periods = allPeriods;
+        renderPeriodGrid();
+      }
+    }
+
+    // ── Render period tiles ────────────────────────────────────
+    function renderPeriodGrid() {
+      const grid   = document.getElementById("periodGrid");
+      const now    = new Date();
+      const nowMin = now.getHours() * 60 + now.getMinutes();
+
+      grid.innerHTML = "";
+      periods.forEach(p => {
+        const [sh, sm] = p.start.split(":").map(Number);
+        const [eh, em] = p.end.split(":").map(Number);
+        const startMin = sh * 60 + sm;
+        const endMin   = eh * 60 + em;
+
+        let badgeClass, badgeText;
+        if (nowMin >= startMin && nowMin <= endMin) {
+          badgeClass = "badge-now"; badgeText = "NOW";
+        } else if (nowMin > endMin) {
+          badgeClass = "badge-done"; badgeText = "Done";
+        } else {
+          badgeClass = "badge-upcoming"; badgeText = "Upcoming";
+        }
+
+        const isActive  = selectedPeriod && selectedPeriod.id === p.id;
+        const isCurrent = badgeText === "NOW";
+
+        const tile = document.createElement("div");
+        tile.className = `period-tile${isCurrent ? " current" : ""}${isActive ? " active" : ""}`;
+        tile.innerHTML = `
+          <div class="p-label">${p.label}</div>
+          <div class="p-time">${p.start} – ${p.end}</div>
+          <span class="p-badge ${badgeClass}">${badgeText}</span>
+        `;
+        tile.onclick = () => selectPeriod(p);
+        grid.appendChild(tile);
+      });
+
+      if (selectedPeriod) {
+        document.getElementById("selectedPeriodLabel").textContent =
+          `${selectedPeriod.label} (${selectedPeriod.start}–${selectedPeriod.end})`;
+      }
+    }
+
+    function selectPeriod(p) {
+      selectedPeriod = p;
+      markedRolls.clear();
+      document.getElementById("markedList").innerHTML =
+        '<li style="color:#9ca3af">None yet</li>';
+      document.getElementById("resultBox").innerHTML =
+        '<p style="color:#9ca3af;font-size:14px">No recognition yet.</p>';
+      renderPeriodGrid();
+      updateStatusBar();
+    }
+
+    // ── Status bar ─────────────────────────────────────────────
+    function updateStatusBar() {
+      if (!selectedPeriod) return;
+      const now    = new Date();
+      const nowMin = now.getHours() * 60 + now.getMinutes();
+      const [sh, sm] = selectedPeriod.start.split(":").map(Number);
+      const diff   = nowMin - (sh * 60 + sm);
+
+      let status, cls, desc;
+      if (diff <= 10)       { status="Present"; cls="s-present"; desc="Within grace period"; }
+      else if (diff <= 20)  { status="Late";    cls="s-late";    desc="10–20 min late";      }
+      else if (diff > 20)   { status="Absent";  cls="s-absent";  desc="More than 20 min late"; }
+      else                  { status="—";       cls="s-none";    desc="Period not started";  }
+
+      document.getElementById("statusBadge").textContent = status;
+      document.getElementById("statusBadge").className   = `s-badge ${cls}`;
+      document.getElementById("statusDesc").textContent  = desc;
+    }
+
+    // ── Start camera ───────────────────────────────────────────
+    async function startAttendance() {
+      if (!selectedPeriod) {
+        alert("Please select a period first.");
+        return;
+      }
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        const video = document.getElementById("video");
+        video.srcObject = stream;
+
+        document.getElementById("camPlaceholder").style.display = "none";
+        document.getElementById("startBtn").style.display       = "none";
+        video.style.display = "block";
+        document.getElementById("stopBtn").style.display        = "block";
+        document.getElementById("camDot").style.background      = "lime";
+        document.getElementById("camLabel").textContent         = "Camera: ON";
+        document.getElementById("detectionStatus").innerHTML    =
+          '<span class="dot" style="background:lime"></span> ON';
+
+        recognitionInterval = setInterval(scanFrame, 2500);
+      } catch (e) {
+        alert("Camera access denied. Please allow camera permission.");
+      }
+    }
+
+    // ── Scan frame ─────────────────────────────────────────────
+    async function scanFrame() {
+      const video  = document.getElementById("video");
+      const canvas = document.getElementById("canvas");
+      if (video.readyState < 2) return;
+
+      canvas.width  = video.videoWidth;
+      canvas.height = video.videoHeight;
+      canvas.getContext("2d").drawImage(video, 0, 0);
+
+      try {
+        const res  = await fetch("http://127.0.0.1:5000/api/recognize-face", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            image:     canvas.toDataURL("image/jpeg", 0.8),
+            period_id: selectedPeriod ? selectedPeriod.id : 0
+          })
+        });
+        handleResult(await res.json());
+      } catch (e) {
+        showResult("⚠ Backend not reachable", "#ef4444");
+      }
+    }
+
+    // ── Handle result ──────────────────────────────────────────
+    function handleResult(data) {
+      if (!data.success) {
+        showResult(data.error || "No face detected", "#9ca3af");
         return;
       }
 
-      try {
-        const res = await fetch(
-          "http://127.0.0.1:5000/api/mark-attendance",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              roll: roll,
-              status: status
-            })
-          }
+      const color = { Present:"#10b981", Late:"#f59e0b", Absent:"#ef4444" }[data.status] || "#9ca3af";
+
+      if (data.already_marked) {
+        showResult(
+          `✔ ${data.name} (${data.roll}) — Already marked <strong>${data.status}</strong> for ${data.period}`,
+          "#9ca3af"
         );
+        return;
+      }
 
+      showResult(
+        `<span style="color:${color};font-size:16px;font-weight:600">${data.status}</span>
+         &nbsp; ${data.name} (${data.roll})<br>
+         <span style="font-size:12px;color:#6b7280">
+           ${data.period} &nbsp;·&nbsp; Confidence: ${data.confidence}% &nbsp;·&nbsp; ${data.time}
+         </span>`, color
+      );
+
+      document.getElementById("resultSub").textContent = `Last: ${data.name}`;
+
+      const key = `${data.roll}-${data.period}`;
+      if (!markedRolls.has(key)) {
+        markedRolls.add(key);
+        const list = document.getElementById("markedList");
+        if (list.children[0]?.style.color === "rgb(156, 163, 175)") list.innerHTML = "";
+        const dot = { Present:"🟢", Late:"🟡", Absent:"🔴" }[data.status] || "⚪";
+        const li  = document.createElement("li");
+        li.style.cssText = "padding:4px 0;border-bottom:1px solid #f3f4f6;";
+        li.innerHTML = `${dot} ${data.name} <span style="color:#9ca3af">${data.roll}</span>
+                        — <strong>${data.status}</strong>
+                        <span style="color:#9ca3af">${data.time}</span>`;
+        list.prepend(li);
+      }
+    }
+
+    function showResult(html, color) {
+      document.getElementById("resultBox").innerHTML =
+        `<div style="border-left:3px solid ${color};padding-left:10px;line-height:1.7;font-size:14px">${html}</div>`;
+    }
+
+    // ── Stop camera ────────────────────────────────────────────
+    function stopAttendance() {
+      clearInterval(recognitionInterval);
+      if (stream) stream.getTracks().forEach(t => t.stop());
+
+      document.getElementById("video").style.display          = "none";
+      document.getElementById("camPlaceholder").style.display = "block";
+      document.getElementById("startBtn").style.display       = "block";
+      document.getElementById("stopBtn").style.display        = "none";
+      document.getElementById("camDot").style.background      = "red";
+      document.getElementById("camLabel").textContent         = "Camera: OFF";
+      document.getElementById("detectionStatus").innerHTML    =
+        '<span class="dot dot-red"></span> OFF';
+    }
+
+    // ── Manual fallback ────────────────────────────────────────
+    async function markManual() {
+      const roll   = document.getElementById("roll").value.trim();
+      const status = document.getElementById("status").value;
+      const msg    = document.getElementById("manualMsg");
+
+      if (!roll) { msg.style.color="red"; msg.textContent="Enter roll number"; return; }
+      if (!selectedPeriod) { msg.style.color="red"; msg.textContent="Select a period first"; return; }
+
+      try {
+        const res  = await fetch("http://127.0.0.1:5000/api/mark-attendance", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ roll, status, period_id: selectedPeriod.id })
+        });
         const data = await res.json();
-
         if (data.success) {
           msg.style.color = "green";
-          msg.textContent = "Attendance marked successfully";
+          msg.textContent = `Marked ${status} for ${selectedPeriod.label}`;
           document.getElementById("roll").value = "";
         } else {
-          msg.style.color = "red";
-          msg.textContent = data.error || "Failed to mark attendance";
+          msg.style.color = "red"; msg.textContent = data.error || "Failed";
         }
       } catch (e) {
-        msg.style.color = "red";
-        msg.textContent = "Backend not reachable";
+        msg.style.color = "red"; msg.textContent = "Backend not reachable";
       }
     }
   </script>

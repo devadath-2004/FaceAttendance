@@ -15,6 +15,10 @@
 
   <!-- CSS -->
   <link rel="stylesheet" href="css/style.css" />
+  <script>
+    // If logged in, show logout instead of Admin Login
+    // Index is public — no redirect needed
+  </script>
 </head>
 
 <body>
@@ -23,92 +27,71 @@
 
   <!-- University Logo Watermark -->
   <div class="logo-watermark">
-    <img src="assets/university-logo.png" alt="University Logo" />
+    <img src="assets/university-logo.png" alt="University Logo" style="opacity:0.45;" />
   </div>
 
   <!-- Navbar -->
   <nav class="navbar">
     <div class="nav-container">
       <div class="nav-left">
-        <div class="logo-box">⌁</div>
+        <div class="logo-box" style="background:none;padding:0;width:36px;height:36px;">
+          <img src="assets/faceattendance-2.png" alt="Logo"
+            style="width:36px;height:36px;border-radius:8px;object-fit:contain;" />
+        </div>
         <span class="brand">Face Attendance</span>
       </div>
 
       <div class="nav-right">
-        <a class="nav-link active" data-nav="index.html">Home</a>
-        <a class="nav-link" data-nav="register.html">Register</a>
-        <a class="nav-link" data-nav="attendance.html">Attendance</a>
-        <a class="nav-link" data-nav="dashboard.html">Dashboard</a>
-        <button class="btn btn-primary" data-nav="login.html">
-          Admin Login
+        <a class="nav-link active" href="index.html">Home</a>
+        <a class="nav-link" href="register.html">Register</a>
+        <a class="nav-link" href="attendance.html">Attendance</a>
+        <a class="nav-link" href="dashboard.html">Dashboard</a>
+        <button class="btn btn-primary" id="authBtn"
+          onclick="window.location.href='login.html'">
+          Login
         </button>
       </div>
     </div>
   </nav>
+  <script>
+    // Show logout if already logged in
+    const _role = localStorage.getItem("role");
+    const _name = localStorage.getItem("userName");
+    const _btn  = document.getElementById("authBtn");
+    if (localStorage.getItem("loggedIn") === "true") {
+      _btn.textContent = `Logout (${_name})`;
+      _btn.onclick     = () => {
+        ["loggedIn","role","userName","periods","facultyId"].forEach(k => localStorage.removeItem(k));
+        window.location.href = "login.html";
+      };
+    }
+  </script>
 
   <!-- HERO SECTION -->
   <section class="hero container">
-    <div class="hero-grid">
-      <!-- Left Content -->
-      <div class="hero-content">
-        <h1 class="hero-title">
-          Smart Face-Based <br />
-          Attendance System
-        </h1>
+    <div style="text-align:center;max-width:680px;margin:0 auto;padding:60px 20px;">
+      <h1 class="hero-title">
+        Smart Face-Based <br />
+        Attendance System
+      </h1>
 
-        <p class="hero-subtitle">
-          Mark attendance instantly using face recognition with laptop webcam.
-        </p>
+      <p class="hero-subtitle">
+        Mark attendance instantly using face recognition with laptop webcam.
+      </p>
 
-        <div class="hero-actions">
-          <button class="btn btn-primary btn-lg">
-            Start Attendance
-          </button>
-          <button class="btn btn-outline btn-lg">
-            Register Student
-          </button>
-        </div>
-
-        <div class="privacy-note">
-          🛡 Camera activates only when you start attendance for privacy.
-        </div>
+      <div class="hero-actions" style="justify-content:center;">
+        <button class="btn btn-primary btn-lg"
+          onclick="window.location.href='attendance.html'">
+          Start Attendance
+        </button>
+        <button class="btn btn-outline btn-lg"
+          onclick="window.location.href='register.html'">
+          Register Student
+        </button>
       </div>
 
-      <!-- Right Webcam Card -->
-      <div class="webcam-card">
-        <div class="webcam-top-left">
-          <span class="dot dot-red"></span>
-          <span>Camera: OFF</span>
-        </div>
-
-        <button
-          class="webcam-settings"
-          type="button"
-          aria-label="Open settings"
-          title="Settings"
-        >
-          ⚙
-        </button>
-
-        <div class="webcam-body">
-          <div class="webcam-frame"></div>
-
-          <div class="webcam-icon">📷</div>
-
-          <div class="webcam-info">
-            <h3>Webcam Preview</h3>
-            <button class="btn btn-primary">
-              Enable Camera Preview
-            </button>
-          </div>
-        </div>
-
-        <div class="webcam-footer">
-          <span class="status-label">Face Detection Status:</span>
-          <span class="status-off">
-            <span class="dot dot-red"></span> OFF
-          </span>
-        </div>
+      <div class="privacy-note" style="justify-content:center;">
+        🛡 Camera activates only when you start attendance for privacy.
       </div>
     </div>
   </section>
@@ -122,7 +105,7 @@
         <p>
           Real-time face detection and attendance marking with instant processing.
         </p>
-        <a href="#" class="learn-more">Learn more →</a>
+        <a href="attendance.html" class="learn-more">Learn more →</a>
       </div>
 
       <div class="feature-card">
@@ -131,7 +114,7 @@
         <p>
           Prevents duplicate entries per day with advanced security measures.
         </p>
-        <a href="#" class="learn-more">Learn more →</a>
+        <a href="register.html" class="learn-more">Learn more →</a>
       </div>
 
       <div class="feature-card">
@@ -140,7 +123,7 @@
         <p>
           View comprehensive reports and export attendance data to CSV format.
         </p>
-        <a href="#" class="learn-more">Learn more →</a>
+        <a href="dashboard.html" class="learn-more">Learn more →</a>
       </div>
     </div>
   </section>
@@ -187,22 +170,22 @@
     <h2 class="section-title center">Quick Access</h2>
 
     <div class="quick-grid">
-      <button class="quick-tile" data-nav="register.html">
+      <button class="quick-tile" onclick="window.location.href='register.html'">
         <div class="tile-icon purple">👤+</div>
         Register Student
       </button>
 
-      <button class="quick-tile" data-nav="attendance.html">
+      <button class="quick-tile" onclick="window.location.href='attendance.html'">
         <div class="tile-icon indigo">✅</div>
         Take Attendance
       </button>
 
-      <button class="quick-tile" data-nav="dashboard.html">
+      <button class="quick-tile" onclick="window.location.href='dashboard.html'">
         <div class="tile-icon green">📋</div>
         View Dashboard
       </button>
 
-      <button class="quick-tile">
+      <button class="quick-tile" onclick="window.location.href='dashboard.html'">
         <div class="tile-icon orange">⬇</div>
         Export Report
       </button>
@@ -222,7 +205,5 @@
     </div>
   </footer>
 
-  <!-- JS -->
-  <script src="js/main.js"></script>
 </body>
 </html>

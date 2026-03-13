@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Faculty Registration | Face Attendance</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    .field-group {
+      margin-bottom: 12px;
+    }
+    .field-group label {
+      display: block;
+      font-size: 12px;
+      color: #6b7280;
+      margin-bottom: 4px;
+      font-weight: 500;
+    }
+    .divider-text {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 16px 0;
+      color: #9ca3af;
+      font-size: 12px;
+    }
+    .divider-text::before,
+    .divider-text::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background: #e5e7eb;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="bg-pattern"></div>
+  <div class="logo-watermark">
+    <img src="assets/university-logo.png" alt="" />
+  </div>
+
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="nav-container">
+      <div class="nav-left">
+        <div class="logo-box" style="background:none;padding:0;width:36px;height:36px;">
+          <img src="assets/faceattendance-2.png" alt="Logo"
+            style="width:36px;height:36px;border-radius:8px;object-fit:contain;" />
+        </div>
+        <span class="brand">Face Attendance</span>
+      </div>
+      <div class="nav-right">
+        <a class="nav-link" href="index.html">Home</a>
+        <a class="nav-link" href="login.html">Login</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Registration Form -->
+  <div class="login-wrapper">
+    <div class="login-card-square" style="max-width:480px;width:100%;">
+
+      <!-- Logo + title -->
+      <div style="display:flex;align-items:center;gap:10px;justify-content:center;margin-bottom:16px;">
+        <img src="assets/faceattendance-2.png" alt="Logo"
+          style="width:40px;height:40px;border-radius:10px;object-fit:contain;" />
+        <span style="font-size:17px;font-weight:700;color:#111827;">Face Attendance</span>
+      </div>
+
+      <h2 class="login-title">Create Faculty Account</h2>
+      <p class="login-sub">Fill in your details to register as faculty</p>
+
+      <!-- Personal Info -->
+      <div class="divider-text">Personal Information</div>
+
+      <div class="field-group">
+        <label>Full Name</label>
+        <input type="text" id="name" placeholder="e.g. Dr. Ramesh Kumar" />
+      </div>
+
+      <div class="field-group">
+        <label>Faculty ID</label>
+        <input type="text" id="facultyId" placeholder="e.g. FAC-2024-001" />
+      </div>
+
+      <div class="field-group">
+        <label>Department</label>
+        <input type="text" id="department" placeholder="e.g. Computer Science" />
+      </div>
+
+      <div class="field-group">
+        <label>Subject Teaching</label>
+        <input type="text" id="subject" placeholder="e.g. Data Structures, DBMS" />
+      </div>
+
+      <!-- Login Credentials -->
+      <div class="divider-text">Login Credentials</div>
+
+      <div class="field-group">
+        <label>Username</label>
+        <input type="text" id="username" placeholder="Choose a username" />
+      </div>
+
+      <div class="field-group">
+        <label>Password</label>
+        <input type="password" id="password" placeholder="Choose a password" />
+      </div>
+
+      <div class="field-group">
+        <label>Confirm Password</label>
+        <input type="password" id="confirmPassword" placeholder="Re-enter password" />
+      </div>
+
+      <button class="btn btn-primary full" onclick="registerFaculty()" style="margin-top:8px">
+        Create Account
+      </button>
+
+      <p id="msg" style="margin-top:12px;font-size:13px;text-align:center;"></p>
+
+      <a href="login.html" class="back-home" style="display:block;text-align:center;margin-top:14px;">
+        ← Back to Login
+      </a>
+    </div>
+  </div>
+
+  <script>
+    async function registerFaculty() {
+      const name            = document.getElementById("name").value.trim();
+      const facultyId       = document.getElementById("facultyId").value.trim();
+      const department      = document.getElementById("department").value.trim();
+      const subject         = document.getElementById("subject").value.trim();
+      const username        = document.getElementById("username").value.trim();
+      const password        = document.getElementById("password").value;
+      const confirmPassword = document.getElementById("confirmPassword").value;
+      const msg             = document.getElementById("msg");
+
+      // Validation
+      if (!name || !facultyId || !department || !subject || !username || !password) {
+        msg.style.color = "red";
+        msg.textContent = "Please fill all fields";
+        return;
+      }
+
+      if (password !== confirmPassword) {
+        msg.style.color = "red";
+        msg.textContent = "Passwords do not match";
+        return;
+      }
+
+      if (password.length < 6) {
+        msg.style.color = "red";
+        msg.textContent = "Password must be at least 6 characters";
+        return;
+      }
+
+      try {
+        const res  = await fetch("http://127.0.0.1:5000/api/register-faculty", {
+          method:  "POST",
+          headers: { "Content-Type": "application/json" },
+          body:    JSON.stringify({
+            name, faculty_id: facultyId, department,
+            subject, username, password
+          })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          msg.style.color = "green";
+          msg.textContent = "✔ Account created! Redirecting to login...";
+          setTimeout(() => window.location.href = "login.html", 2000);
+        } else {
+          msg.style.color = "red";
+          msg.textContent = data.error || "Registration failed";
+        }
+      } catch (e) {
+        msg.style.color = "red";
+        msg.textContent = "Backend not reachable";
+      }
+    }
+  </script>
+</body>
+</html>
