@@ -72,6 +72,11 @@
 
       <p id="login-msg"></p>
 
+      <a href="Forgot-password.html"
+        style="display:block;text-align:center;font-size:13px;color:#6366f1;margin-top:8px;text-decoration:none;">
+        Forgot Password?
+      </a>
+
       <div class="divider">or</div>
 
       <button class="btn btn-outline full" onclick="window.location.href='faculty-register.html'">
@@ -104,7 +109,9 @@
           localStorage.setItem("role",      data.role);
           localStorage.setItem("userName",  data.name);
           localStorage.setItem("periods",   JSON.stringify(data.periods || []));
+          localStorage.setItem("schedule",  JSON.stringify(data.schedule || {}));
           localStorage.setItem("facultyId", data.id || "");
+          localStorage.setItem("loginTime", Date.now());
 
           // Show detected role briefly before redirect
           msg.style.color = "green";

@@ -16,8 +16,18 @@
   <!-- CSS -->
   <link rel="stylesheet" href="css/style.css" />
   <script>
-    // If logged in, show logout instead of Admin Login
-    // Index is public — no redirect needed
+    // Clear stale session on home page load
+    // If no loginTime recorded, it means session is leftover — wipe it
+    const loginTime = localStorage.getItem("loginTime");
+    if (!loginTime) {
+      localStorage.clear();
+    } else {
+      // Also auto-expire sessions older than 8 hours
+      const elapsed = Date.now() - parseInt(loginTime);
+      if (elapsed > 8 * 60 * 60 * 1000) {
+        localStorage.clear();
+      }
+    }
   </script>
 </head>
 

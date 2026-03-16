@@ -236,9 +236,16 @@
       window.location.href = "login.html";
     }
 
-    const DASH_ROLE        = localStorage.getItem("role");
-    const DASH_NAME        = localStorage.getItem("userName");
-    const DASH_PERIODS     = JSON.parse(localStorage.getItem("periods") || "[]");
+    const DASH_ROLE     = localStorage.getItem("role");
+    const DASH_NAME     = localStorage.getItem("userName");
+    const DASH_SCHEDULE = JSON.parse(localStorage.getItem("schedule") || "{}");
+    const DASH_PERIODS  = JSON.parse(localStorage.getItem("periods") || "[]");
+    const DASH_DAYS     = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+    const DASH_TODAY    = DASH_DAYS[new Date().getDay()];
+    // For dashboard period picker, show today's assigned periods
+    const DASH_TODAY_PERIODS = DASH_ROLE !== "admin"
+      ? (DASH_SCHEDULE[DASH_TODAY] || DASH_PERIODS)
+      : [];
 
     const PERIOD_INFO = {
       1:"Period 1 (09:00–09:50)", 2:"Period 2 (10:00–10:50)",
@@ -258,20 +265,19 @@
       const title = document.getElementById("dashTitle");
       if (title) title.textContent = DASH_ROLE === "admin" ? "Admin Dashboard" : `${DASH_NAME}'s Dashboard`;
 
-      // Filter period picker for faculty
+      // Filter period picker for faculty — show today's periods
       const picker = document.getElementById("periodPicker");
-      if (DASH_ROLE !== "admin" && DASH_PERIODS.length > 0) {
-        // Remove all options except "All Periods" placeholder
+      if (DASH_ROLE !== "admin" && DASH_TODAY_PERIODS.length > 0) {
         picker.innerHTML = "";
-        // Add only assigned periods
-        DASH_PERIODS.forEach(pid => {
+        DASH_TODAY_PERIODS.forEach(pid => {
           const opt = document.createElement("option");
           opt.value       = pid;
           opt.textContent = PERIOD_INFO[pid] || `Period ${pid}`;
           picker.appendChild(opt);
         });
-        // Auto-select first assigned period
-        picker.value = DASH_PERIODS[0];
+        picker.value = DASH_TODAY_PERIODS[0];
+      } else if (DASH_ROLE !== "admin" && DASH_TODAY_PERIODS.length === 0) {
+        picker.innerHTML = `<option value="">No periods for ${DASH_TODAY}</option>`;
       }
 
       // Hide admin-only sections for faculty
@@ -292,10 +298,13 @@
         const res  = await fetch("http://127.0.0.1:5000/api/faculty");
         const data = await res.json();
 
-        const periodLabels = {
-          1:"P1 09:00", 2:"P2 10:00", 3:"P3 11:00", 4:"P4 12:00",
-          5:"P5 13:40", 6:"P6 14:40", 7:"P7 15:40"
-        };
+        const DAYS    = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+        const PERIODS = [
+          {id:1,label:"P1",time:"09:00"},{id:2,label:"P2",time:"10:00"},
+          {id:3,label:"P3",time:"11:00"},{id:4,label:"P4",time:"12:00"},
+          {id:5,label:"P5",time:"13:40"},{id:6,label:"P6",time:"14:40"},
+          {id:7,label:"P7",time:"15:40"}
+        ];
 
         const container = document.getElementById("facultyList");
         container.innerHTML = "";
@@ -307,28 +316,51 @@
 
         data.faculty.forEach(f => {
           const div = document.createElement("div");
-          div.style.cssText = "border:1px solid #e5e7eb;border-radius:10px;padding:14px;margin-bottom:12px;";
-          div.innerHTML = `
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;">
+          div.style.cssText = "border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin-bottom:16px;overflow-x:auto;";
+
+          // Header
+          let html = `
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
               <div>
                 <strong style="font-size:14px;color:#111827">${f.name}</strong>
                 <span style="font-size:12px;color:#6b7280;margin-left:8px">${f.faculty_id}</span><br>
                 <span style="font-size:12px;color:#6b7280">${f.department} · ${f.subject}</span>
               </div>
-              <button class="btn btn-outline" style="font-size:12px;padding:4px 12px"
-                onclick="savePeriods(${f.id}, this)">Save</button>
+              <button class="btn btn-outline" style="font-size:12px;padding:5px 14px"
+                onclick="savePeriods(${f.id}, this)">Save Schedule</button>
             </div>
-            <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;" id="periods-${f.id}">
-              ${[1,2,3,4,5,6,7].map(pid => `
-                <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;">
-                  <input type="checkbox" value="${pid}"
-                    ${f.periods.includes(pid) ? "checked" : ""}
-                    style="cursor:pointer;">
-                  ${periodLabels[pid]}
-                </label>`).join("")}
-            </div>`;
+            <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:500px;">
+              <thead>
+                <tr style="background:#f9fafb;">
+                  <th style="padding:8px;text-align:left;color:#6b7280;border-bottom:2px solid #e5e7eb;min-width:90px;">Day</th>`;
+
+          PERIODS.forEach(p => {
+            html += `<th style="padding:8px 6px;text-align:center;color:#6b7280;border-bottom:2px solid #e5e7eb;">
+              ${p.label}<br><span style="font-size:10px;color:#9ca3af;">${p.time}</span></th>`;
+          });
+          html += `</tr></thead><tbody>`;
+
+          DAYS.forEach((day, di) => {
+            const bg = di % 2 === 0 ? "#fff" : "#fafafa";
+            html += `<tr style="background:${bg};">
+              <td style="padding:8px;font-weight:500;color:#374151;">${day}</td>`;
+            PERIODS.forEach(p => {
+              const checked = f.schedule[day] && f.schedule[day].includes(p.id) ? "checked" : "";
+              html += `<td style="text-align:center;padding:8px 6px;">
+                <input type="checkbox"
+                  data-faculty="${f.id}" data-day="${day}" data-period="${p.id}"
+                  ${checked}
+                  style="width:16px;height:16px;cursor:pointer;accent-color:#6366f1;">
+              </td>`;
+            });
+            html += `</tr>`;
+          });
+
+          html += `</tbody></table>`;
+          div.innerHTML = html;
           container.appendChild(div);
         });
+
       } catch(e) {
         document.getElementById("facultyList").innerHTML =
           `<p style="color:red;font-size:13px">Backend not reachable</p>`;
@@ -336,20 +368,30 @@
     }
 
     async function savePeriods(facultyDbId, btn) {
-      const checks  = document.querySelectorAll(`#periods-${facultyDbId} input[type=checkbox]`);
-      const periods = Array.from(checks).filter(c => c.checked).map(c => parseInt(c.value));
+      const checks   = document.querySelectorAll(`input[data-faculty="${facultyDbId}"]`);
+      const schedule = {};
+      checks.forEach(cb => {
+        if (cb.checked) {
+          const day = cb.dataset.day;
+          const pid = parseInt(cb.dataset.period);
+          schedule[day] = schedule[day] || [];
+          schedule[day].push(pid);
+        }
+      });
+
       btn.textContent = "Saving...";
       try {
         const res  = await fetch("http://127.0.0.1:5000/api/assign-periods", {
           method:  "POST",
           headers: { "Content-Type": "application/json" },
-          body:    JSON.stringify({ faculty_id: facultyDbId, periods })
+          body:    JSON.stringify({ faculty_id: facultyDbId, schedule })
         });
         const data = await res.json();
         btn.textContent = data.success ? "✔ Saved" : "Error";
-        setTimeout(() => btn.textContent = "Save", 2000);
+        setTimeout(() => btn.textContent = "Save Schedule", 2500);
       } catch(e) {
         btn.textContent = "Error";
+        setTimeout(() => btn.textContent = "Save Schedule", 2500);
       }
     }
 
@@ -368,11 +410,10 @@
       const date   = document.getElementById("datePicker").value;
       let   period = document.getElementById("periodPicker").value;
 
-      // Faculty can only see their assigned periods
+      // Faculty can only see their today's assigned periods
       if (DASH_ROLE !== "admin") {
-        // If selected period not in assigned, force first assigned
-        if (!DASH_PERIODS.includes(parseInt(period))) {
-          period = DASH_PERIODS[0] || "";
+        if (DASH_TODAY_PERIODS.length > 0 && !DASH_TODAY_PERIODS.includes(parseInt(period))) {
+          period = DASH_TODAY_PERIODS[0] || "";
           document.getElementById("periodPicker").value = period;
         }
       }

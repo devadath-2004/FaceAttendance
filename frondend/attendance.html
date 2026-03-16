@@ -211,9 +211,16 @@
     const markedRolls       = new Set();
 
     // ── Role & assigned periods from localStorage ──────────────
-    const ROLE             = localStorage.getItem("role") || "faculty";
-    const USER_NAME        = localStorage.getItem("userName") || "";
-    const ASSIGNED_PERIODS = JSON.parse(localStorage.getItem("periods") || "[]");
+    const ROLE      = localStorage.getItem("role") || "faculty";
+    const USER_NAME = localStorage.getItem("userName") || "";
+    const SCHEDULE  = JSON.parse(localStorage.getItem("schedule") || "{}");
+    const DAYS      = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+    const TODAY_DAY = DAYS[new Date().getDay()];
+
+    // Get today's assigned periods for faculty
+    const TODAYS_PERIODS = ROLE === "faculty"
+      ? (SCHEDULE[TODAY_DAY] || [])
+      : [];
 
     function logout() {
       ["loggedIn","role","userName","periods","facultyId"].forEach(k => localStorage.removeItem(k));
@@ -247,14 +254,20 @@
         const data = await res.json();
         let allPeriods = data.periods;
 
-        // Faculty only sees their assigned periods
-        if (ROLE === "faculty" && ASSIGNED_PERIODS.length > 0) {
-          allPeriods = allPeriods.filter(p => ASSIGNED_PERIODS.includes(p.id));
+        // Faculty only sees their periods for TODAY
+        if (ROLE === "faculty") {
+          if (TODAYS_PERIODS.length > 0) {
+            allPeriods = allPeriods.filter(p => TODAYS_PERIODS.includes(p.id));
+          } else {
+            // No periods assigned for today
+            allPeriods = [];
+            document.getElementById("camPlaceholder").querySelector("p").textContent =
+              `No periods assigned for ${TODAY_DAY}`;
+          }
         }
         periods = allPeriods;
 
         if (data.current_period) {
-          // Auto-select only if it's in the faculty's assigned periods
           const current = periods.find(p => p.id === data.current_period.id);
           if (current) selectedPeriod = current;
         }
@@ -262,16 +275,16 @@
         updateStatusBar();
       } catch (e) {
         let allPeriods = [
-          {id:1, label:"Period 1", start:"09:00", end:"09:50"},
-          {id:2, label:"Period 2", start:"10:00", end:"10:50"},
-          {id:3, label:"Period 3", start:"11:00", end:"11:50"},
-          {id:4, label:"Period 4", start:"12:00", end:"12:50"},
-          {id:5, label:"Period 5", start:"13:40", end:"14:30"},
-          {id:6, label:"Period 6", start:"14:40", end:"15:30"},
-          {id:7, label:"Period 7", start:"15:40", end:"16:30"},
+          {id:1,label:"Period 1",start:"09:00",end:"09:50"},
+          {id:2,label:"Period 2",start:"10:00",end:"10:50"},
+          {id:3,label:"Period 3",start:"11:00",end:"11:50"},
+          {id:4,label:"Period 4",start:"12:00",end:"12:50"},
+          {id:5,label:"Period 5",start:"13:40",end:"14:30"},
+          {id:6,label:"Period 6",start:"14:40",end:"15:30"},
+          {id:7,label:"Period 7",start:"15:40",end:"16:30"},
         ];
-        if (ROLE === "faculty" && ASSIGNED_PERIODS.length > 0) {
-          allPeriods = allPeriods.filter(p => ASSIGNED_PERIODS.includes(p.id));
+        if (ROLE === "faculty" && TODAYS_PERIODS.length > 0) {
+          allPeriods = allPeriods.filter(p => TODAYS_PERIODS.includes(p.id));
         }
         periods = allPeriods;
         renderPeriodGrid();

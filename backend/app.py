@@ -105,17 +105,31 @@ def login():
     faculty_db_id = faculty[0]
     faculty_name  = faculty[1]
 
-    # Get assigned periods
-    cur.execute("SELECT period_id FROM faculty_periods WHERE faculty_id=?", (faculty_db_id,))
-    assigned = [row[0] for row in cur.fetchall()]
+    # Get assigned periods per day
+    cur.execute("""
+        SELECT day, period_id FROM faculty_periods
+        WHERE faculty_id=? ORDER BY day, period_id
+    """, (faculty_db_id,))
+    rows = cur.fetchall()
     conn.close()
 
+    # Build schedule: { "Monday": [1,3], "Wednesday": [2], ... }
+    schedule = {}
+    for day, pid in rows:
+        schedule.setdefault(day, [])
+        if pid not in schedule[day]:
+            schedule[day].append(pid)
+
+    # Flat list of all unique assigned period IDs (for backward compat)
+    all_periods = list({pid for pids in schedule.values() for pid in pids})
+
     return jsonify({
-        "success": True,
-        "role":    "faculty",
-        "name":    faculty_name,
-        "id":      faculty_db_id,
-        "periods": assigned      # e.g. [1, 3]
+        "success":  True,
+        "role":     "faculty",
+        "name":     faculty_name,
+        "id":       faculty_db_id,
+        "periods":  all_periods,
+        "schedule": schedule
     })
 
 # ── Get all faculty (for admin panel) ─────────────────────────
@@ -128,35 +142,92 @@ def get_faculty():
 
     result = []
     for r in rows:
-        cur.execute("SELECT period_id FROM faculty_periods WHERE faculty_id=?", (r[0],))
-        periods = [p[0] for p in cur.fetchall()]
+        cur.execute("""
+            SELECT day, period_id FROM faculty_periods
+            WHERE faculty_id=? ORDER BY day, period_id
+        """, (r[0],))
+        schedule = {}
+        for day, pid in cur.fetchall():
+            schedule.setdefault(day, [])
+            if pid not in schedule[day]:
+                schedule[day].append(pid)
         result.append({
             "id": r[0], "name": r[1], "faculty_id": r[2],
-            "department": r[3], "subject": r[4], "periods": periods
+            "department": r[3], "subject": r[4],
+            "schedule": schedule
         })
     conn.close()
     return jsonify({"faculty": result})
 
-# ── Assign periods to faculty (admin only) ─────────────────────
+# ── Assign periods to faculty by day (admin only) ──────────────
 @app.route("/api/assign-periods", methods=["POST"])
 def assign_periods():
     d          = request.json
-    faculty_id = d.get("faculty_id")   # DB id of faculty
-    periods    = d.get("periods", [])  # list of period ids e.g. [1,3]
+    faculty_id = d.get("faculty_id")
+    # schedule: { "Monday": [1,3], "Tuesday": [2], ... }
+    schedule   = d.get("schedule", {})
 
     conn = get_connection()
     cur  = conn.cursor()
 
-    # Clear existing assignments and re-insert
+    # Clear existing assignments
     cur.execute("DELETE FROM faculty_periods WHERE faculty_id=?", (faculty_id,))
-    for pid in periods:
-        cur.execute(
-            "INSERT OR IGNORE INTO faculty_periods (faculty_id, period_id) VALUES (?,?)",
-            (faculty_id, int(pid))
-        )
+
+    # Insert new day-period assignments
+    for day, periods in schedule.items():
+        for pid in periods:
+            cur.execute("""
+                INSERT OR IGNORE INTO faculty_periods (faculty_id, day, period_id)
+                VALUES (?, ?, ?)
+            """, (faculty_id, day, int(pid)))
+
     conn.commit()
     conn.close()
     return jsonify({"success": True})
+
+# ── Verify faculty identity for password reset ─────────────────
+@app.route("/api/verify-faculty", methods=["POST"])
+def verify_faculty():
+    d          = request.json
+    username   = d.get("username")
+    faculty_id = d.get("faculty_id")
+
+    conn = get_connection()
+    cur  = conn.cursor()
+    cur.execute(
+        "SELECT id, name FROM faculty WHERE username=? AND faculty_id=?",
+        (username, faculty_id)
+    )
+    faculty = cur.fetchone()
+    conn.close()
+
+    if faculty:
+        return jsonify({"success": True, "name": faculty[1]})
+    return jsonify({"success": False, "error": "Username or Faculty ID does not match"}), 400
+
+# ── Reset faculty password ─────────────────────────────────────
+@app.route("/api/reset-password", methods=["POST"])
+def reset_password():
+    d        = request.json
+    username = d.get("username")
+    password = d.get("password")
+
+    if not username or not password:
+        return jsonify({"success": False, "error": "Missing data"}), 400
+
+    conn = get_connection()
+    cur  = conn.cursor()
+    cur.execute(
+        "UPDATE faculty SET password=? WHERE username=?",
+        (password, username)
+    )
+    updated = cur.rowcount
+    conn.commit()
+    conn.close()
+
+    if updated:
+        return jsonify({"success": True})
+    return jsonify({"success": False, "error": "User not found"}), 404
 
 # ── Register faculty ───────────────────────────────────────────
 @app.route("/api/register-faculty", methods=["POST"])

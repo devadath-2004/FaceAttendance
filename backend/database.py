@@ -68,14 +68,15 @@ def init_db():
         password   TEXT
     )""")
 
-    # Which periods each faculty is assigned to
+    # faculty_periods: which periods each faculty teaches on which day
     cur.execute("""
     CREATE TABLE IF NOT EXISTS faculty_periods (
         id         INTEGER PRIMARY KEY AUTOINCREMENT,
         faculty_id INTEGER,
+        day        TEXT,
         period_id  INTEGER,
         FOREIGN KEY(faculty_id) REFERENCES faculty(id),
-        UNIQUE(faculty_id, period_id)
+        UNIQUE(faculty_id, day, period_id)
     )""")
 
     cur.execute("INSERT OR IGNORE INTO admins (username, password) VALUES ('admin', 'admin123')")
@@ -88,6 +89,7 @@ def init_db():
         "ALTER TABLE students ADD COLUMN face_encoding TEXT",
         "ALTER TABLE students ADD COLUMN class TEXT",
         "ALTER TABLE attendance ADD COLUMN period INTEGER DEFAULT 1",
+        "ALTER TABLE faculty_periods ADD COLUMN day TEXT DEFAULT 'Monday'",
     ]:
         try:
             cur.execute(sql)
